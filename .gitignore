@@ -10,3 +10,6 @@ Mercury/
 *.beams
 *.d
 *.c_date
+
+# using Vim
+*.swp

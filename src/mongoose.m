@@ -1,0 +1,91 @@
+%----------------------------------------------------------------------------%
+% vim: ft=mercury ff=unix ts=4 sw=4 et
+%----------------------------------------------------------------------------%
+% File: mongoose.m
+% Copyright © 2014 Sebastian Godelet
+% Main author: Sebastian Godelet <sebastian.godelet+github@gmail.com>
+% Created on: Thu 18 Dec 17:44:09 CST 2014
+% Stability: low
+%----------------------------------------------------------------------------%
+% TODO: module documentation
+%----------------------------------------------------------------------------%
+
+:- module mongoose.
+
+:- interface.
+
+% TODO: include/import/use modules
+
+%----------------------------------------------------------------------------%
+
+:- type server.
+
+:- type connection.
+
+:- type result
+    --->    true
+    ;       false
+    ;       more.
+
+:- type (event)
+    --->    poll
+    ;       connect
+    ;       auth
+    ;       request
+    ;       reply
+    ;       recv
+    ;       close
+    ;       ws_handshake
+    ;       ws_connect
+    ;       http_error.
+
+:- type websocket_opcode
+    --->    continuation
+    ;       text
+    ;       binary
+    ;       connection_close
+    ;       ping
+    ;       pong.
+
+%----------------------------------------------------------------------------%
+%----------------------------------------------------------------------------%
+
+:- implementation.
+
+% TODO: include/import/use modules
+
+%----------------------------------------------------------------------------%
+
+:- pragma foreign_decl("C", include_file("mongoose/mongoose.h")).
+:- pragma foreign_code("C", include_file("mongoose/mongoose.c")).
+
+:- pragma foreign_type("C", server,
+    "struct mg_server *", [can_pass_as_mercury_type]).
+
+:- pragma foreign_type("C", connection,
+    "struct mg_connection *", [can_pass_as_mercury_type]).
+
+:- pragma foreign_enum("C", result/0,
+    [
+        true  - "MG_TRUE",
+        false - "MG_FALSE",
+        more  - "MG_MORE"
+    ]).
+
+:- pragma foreign_enum("C", (event)/0,
+    [
+        poll    - "MG_POLL",
+        connect - "MG_CONNECT",
+        auth    - "MG_AUTH",
+        request - "MG_REQUEST",
+        reply   - "MG_REPLY",
+        recv    - "MG_RECV",
+        close   - "MG_CLOSE",
+        ws_handshake - "MG_WS_HANDSHAKE",
+        ws_connect   - "MG_WS_CONNECT",
+        http_error   - "MG_HTTP_ERROR"
+    ]).
+
+%----------------------------------------------------------------------------%
+:- end_module mongoose.
+%----------------------------------------------------------------------------%
