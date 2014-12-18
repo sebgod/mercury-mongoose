@@ -14,7 +14,7 @@
 
 :- interface.
 
-% TODO: include/import/use modules
+:- import_module io.
 
 %----------------------------------------------------------------------------%
 
@@ -22,7 +22,9 @@
 
 :- type connection.
 
-:- type result
+:- type callback.
+
+:- type callback_result
     --->    true
     ;       false
     ;       more.
@@ -47,6 +49,9 @@
     ;       ping
     ;       pong.
 
+:- pred create(c_pointer::in, callback::in, server::uo, io::di, io::uo)
+    is det.
+
 %----------------------------------------------------------------------------%
 %----------------------------------------------------------------------------%
 
@@ -65,7 +70,9 @@
 :- pragma foreign_type("C", connection,
     "struct mg_connection *", [can_pass_as_mercury_type]).
 
-:- pragma foreign_enum("C", result/0,
+:- pragma foreign_type("C", callback, "mg_handler_t").
+
+:- pragma foreign_enum("C", callback_result/0,
     [
         true  - "MG_TRUE",
         false - "MG_FALSE",
@@ -85,6 +92,13 @@
         ws_connect   - "MG_WS_CONNECT",
         http_error   - "MG_HTTP_ERROR"
     ]).
+
+:- pragma foreign_proc("C",
+    create(ServerParam::in, Handler::in, Server::uo, _IO0::di, _IO::uo),
+    [promise_pure],
+"
+    Server = mg_create_server((void *)ServerParam, Handler);
+").
 
 %----------------------------------------------------------------------------%
 :- end_module mongoose.
