@@ -24,6 +24,8 @@
 
 :- type callback.
 
+:- inst callback_func == (func(in, in) = (out) is det).
+
 :- type callback_result
     --->    true
     ;       false
@@ -49,8 +51,8 @@
     ;       ping
     ;       pong.
 
-:- pred create(c_pointer::in, callback::in, server::uo, io::di, io::uo)
-    is det.
+:- pred create(c_pointer::in, callback::in(callback_func), server::uo,
+            io::di, io::uo) is det.
 
 %----------------------------------------------------------------------------%
 %----------------------------------------------------------------------------%
@@ -91,8 +93,8 @@
     ]).
 
 :- pragma foreign_proc("C",
-    create(ServerParam::in, Handler::in, Server::uo, _IO0::di, _IO::uo),
-    [promise_pure],
+    create(ServerParam::in, Handler::in(callback_func), Server::uo,
+        _IO0::di, _IO::uo), [promise_pure],
 "
     Server = mg_create_server((void *)ServerParam, Handler);
 ").
