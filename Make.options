@@ -1,0 +1,2 @@
+MMC = mmc
+HARDLINK = cp -l -u
