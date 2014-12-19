@@ -60,7 +60,6 @@
 %----------------------------------------------------------------------------%
 
 :- pragma foreign_decl("C", include_file("mongoose.h")).
-:- pragma foreign_code("C", include_file("mongoose.c")).
 
 :- pragma foreign_type("C", server,
     "struct mg_server *", [can_pass_as_mercury_type]).

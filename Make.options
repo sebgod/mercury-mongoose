@@ -1,2 +1,4 @@
-MMC = mmc
-HARDLINK = cp -l -u
+MMC := mmc
+CC  := $(shell $(MMC) --output-cc)
+CFLAGS := -fPIC
+HARDLINK := cp -l -u
