@@ -2,3 +2,16 @@ MMC := mmc
 CC  := $(shell $(MMC) --output-cc)
 CFLAGS := -fPIC
 HARDLINK := cp -l -u
+RM := rm
+DEL_FILE := $(RM) -f
+DEL_DIR  := $(RM) -fR
+
+# The expected outputs do not use CRLF line endings,
+# so if we are on Windows we need to account for this.
+# We assume the use of GNU diff if this is the case.
+#
+ifdef WINDIR
+    DIFF_FLAGS := --diff-flags "--strip-trailing-cr"
+else
+    DIFF_FLAGS :=
+endif

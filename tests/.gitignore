@@ -1,0 +1,6 @@
+Mercury
+Mercury.modules
+*.out
+*.res
+test_server
+test_server.exe
