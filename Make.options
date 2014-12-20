@@ -5,6 +5,7 @@ RM := rm
 DEL_FILE := $(RM) -f
 DEL_DIR  := $(RM) -fR
 
+# TODO: This needs to be determined from $(CC)
 OBJ_EXT := o
 
 # The expected outputs do not use CRLF line endings,
