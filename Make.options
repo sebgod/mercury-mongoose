@@ -5,6 +5,8 @@ RM := rm
 DEL_FILE := $(RM) -f
 DEL_DIR  := $(RM) -fR
 
+OBJ_EXT := o
+
 # The expected outputs do not use CRLF line endings,
 # so if we are on Windows we need to account for this.
 # We assume the use of GNU diff if this is the case.

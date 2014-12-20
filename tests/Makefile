@@ -13,12 +13,17 @@ runtests-verbose: $(TEST_SERVER)
 Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.m)
 	$(MMC) -f $(wildcard *.m) $(wildcard ../src/*.m)
 
-$(TEST_SERVER): Mercury.modules
-	$(MMC) --make $@
+$(TEST_SERVER): Mercury.modules mongoose.$(OBJ_EXT)
+	$(MMC) --make $@ --link-object mongoose.$(OBJ_EXT) -lpthread
 
-.PHONY: realclean
-realclean:
-	$(MMC) --make $(TEST_SERVER).realclean
+mongoose.$(OBJ_EXT):
+	cd ../src && $(MAKE) $@
+	$(HARDLINK) ../src/$@ $@
+
+.PHONY: clean
+clean:
+	$(MMC) --make $(TEST_SERVER).clean
 	$(DEL_DIR) Mercury
 	$(DEL_FILE) Mercury.modules
 	$(DEL_FILE) FAILED_TESTS ABORTED_TESTS
+	$(DEL_FILE) mongoose.$(OBJ_EXT)

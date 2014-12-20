@@ -7,6 +7,7 @@ default:
 .PHONY: clean
 clean:
 	cd src && $(MAKE) clean
+	cd tests && $(MAKE) clean
 
 .PHONY: tests
 tests:

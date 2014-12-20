@@ -25,12 +25,18 @@
 
 :- implementation.
 
+:- import_module mercury_mongoose.
+
 :- import_module require.
 
 %----------------------------------------------------------------------------%
 
+:- func handler `with_type` callback_func `with_inst` callback_func.
+
+handler(_Connection, _Event, !IO) = true.
+
 main(!IO) :-
-    sorry($module, $pred, "No tests yet!").
+    create(none, handler, _Server, !IO).
 
 %----------------------------------------------------------------------------%
 :- end_module test_server.

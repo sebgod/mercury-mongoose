@@ -2,5 +2,7 @@ Mercury
 Mercury.modules
 *.out
 *.res
+*.o
+*.obj
 test_server
 test_server.exe

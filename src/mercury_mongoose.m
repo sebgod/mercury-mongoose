@@ -20,11 +20,13 @@
 
 :- type server.
 
+:- type server_param
+    --->    none.
+
 :- type connection.
 
-:- type callback.
-
-:- inst callback_func == (func(in, in) = (out) is det).
+:- type callback_func == (func(connection, event, io, io) = callback_result).
+:- inst callback_func == (func(in, in, di, uo) = (out) is det).
 
 :- type callback_result
     --->    true
@@ -51,7 +53,7 @@
     ;       ping
     ;       pong.
 
-:- pred create(c_pointer::in, callback::in(callback_func), server::uo,
+:- pred create(server_param::in, callback_func::in(callback_func), server::uo,
             io::di, io::uo) is det.
 
 %----------------------------------------------------------------------------%
@@ -68,8 +70,6 @@
 
 :- pragma foreign_type("C", connection,
     "struct mg_connection *", [can_pass_as_mercury_type]).
-
-:- pragma foreign_type("C", callback, "mg_handler_t").
 
 :- pragma foreign_enum("C", callback_result/0,
     [
@@ -93,10 +93,10 @@
     ]).
 
 :- pragma foreign_proc("C",
-    create(ServerParam::in, Handler::in(callback_func), Server::uo,
+    create(_ServerParam::in, Handler::in(callback_func), Server::uo,
         _IO0::di, _IO::uo), [promise_pure],
 "
-    Server = mg_create_server((void *)ServerParam, Handler);
+    Server = mg_create_server(NULL, (mg_handler_t)Handler);
 ").
 
 %----------------------------------------------------------------------------%
