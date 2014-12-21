@@ -25,9 +25,6 @@
 
 :- type server.
 
-:- type server_param
-    --->    none.
-
 :- type connection.
 
 :- type handler_func == (func(connection, event, io, io) = handler_result).
@@ -58,9 +55,9 @@
     ;       ping
     ;       pong.
 
-    % create(ServerParam, Handler, Server, !IO)
-:- pred create(server_param::in, /*handler_func::in(handler_func),*/
-    server::uo, io::di, io::uo) is det.
+    % create(Server, Handler, !IO)
+:- pred create(server::uo, handler_func::in(handler_func),
+    io::di, io::uo) is det.
 
     % destroy(Server, !IO)
 :- pred destroy(server::in, io::di, io::uo) is det.
@@ -105,10 +102,10 @@
     ]).
 
 :- pragma foreign_proc("C",
-    create(_ServerParam::in, /* Handler::in(handler_func),*/ Server::uo,
+    create(Server::uo, Handler::in(handler_func),
         _IO0::di, _IO::uo), [promise_pure],
 "
-    Server = mg_create_server(NULL, (mg_handler_t)test_handler);
+    Server = mg_create_server((void*)Handler, (mg_handler_t)mercury_handler);
     mg_set_option(Server, ""listening_port"", ""8080"");
 ").
 
@@ -129,25 +126,28 @@
 
 %----------------------------------------------------------------------------%
 %
-% Test facilities
+% Enable the server to call the HTTP handler written in Mercury.
+% XXX: Not sure if this is legal Mercury.
 %
 
-:- func test_handler `with_type` handler_func `with_inst` handler_func.
+:- func mercury_handler `with_type` handler_func `with_inst` handler_func.
 
-:- pragma foreign_export("C", test_handler(in, in, di, uo) = out,
-    "test_handler").
+:- pragma foreign_export("C", mercury_handler(in, in, di, uo) = out,
+    "mercury_handler").
 
-test_handler(_Connection, Event, !IO) = Result :-
-    trace [io(!Trace)] (
-        io.print("received event: ", !Trace),
-        io.print(Event, !Trace),
-        io.nl(!Trace)
-    ),
-    ( Event = auth ->
-        Result = true
-    ;
-        Result = false
-    ).
+mercury_handler(Connection, Event, !IO) = Result :-
+    Handler = server_handler(Connection),
+    Result = Handler(Connection, Event, !.IO, !:IO).
+
+:- func server_handler(connection::in) =
+    (handler_func::out(handler_func)) is det.
+
+:- pragma foreign_proc("C",
+    server_handler(Connection::in) = (Handler::out(handler_func)),
+    [promise_pure],
+"
+    Handler = (MR_Word)(Connection->server_param);
+").
 
 %----------------------------------------------------------------------------%
 :- end_module mercury_mongoose.

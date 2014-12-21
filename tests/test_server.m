@@ -32,8 +32,12 @@
 
 %----------------------------------------------------------------------------%
 
+:- func echo_server `with_type` handler_func `with_inst` handler_func.
+
+echo_server(_Conn, _Event, !IO) = false.
+
 main(!IO) :-
-    create(none, Server, !IO),
+    create(Server, echo_server, !IO),
     poll(Server, yes, 1000, !IO),
     destroy(Server, !IO).
 
