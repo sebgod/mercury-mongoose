@@ -28,13 +28,23 @@
 :- import_module mercury_mongoose.
 
 :- import_module bool.
-:- import_module require.
+:- import_module list.
+:- import_module string.
 
 %----------------------------------------------------------------------------%
 
 :- func echo_server `with_type` handler_func `with_inst` handler_func.
 
-echo_server(_Conn, _Event, !IO) = false.
+echo_server(Connection, Event, !IO) = Result :-
+    ( Event = auth ->
+        Result = true
+    ; Event = request ->
+        printf_data(Connection, "Hello! Requested URI is [%s]\n",
+            [s(Connection^requested_uri)], _, !IO),
+        Result = true
+    ;
+        Result = false
+    ).
 
 main(!IO) :-
     create(Server, echo_server, !IO),

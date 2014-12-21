@@ -20,12 +20,15 @@
 
 :- import_module bool.
 :- import_module io.
+:- import_module list.
 
 %----------------------------------------------------------------------------%
 
 :- type server.
 
 :- type connection.
+
+:- type uri == string.
 
 :- type handler_func == (func(connection, event, io, io) = handler_result).
 :- inst handler_func == (func(in, in, di, uo) = (out) is det).
@@ -55,23 +58,61 @@
     ;       ping
     ;       pong.
 
-    % create(Server, Handler, !IO)
+%----------------------------------------------------------------------------%
+%
+% Server management predicates.
+%
+
+    % create(Server, Handler, !IO):
+    %
 :- pred create(server::uo, handler_func::in(handler_func),
     io::di, io::uo) is det.
 
-    % destroy(Server, !IO)
+    % destroy(Server, !IO):
+    %
 :- pred destroy(server::in, io::di, io::uo) is det.
 
-    % poll(Server, Loop, Milliseconds, !IO)
+    % poll(Server, Loop, Milliseconds, !IO):
+    %
 :- pred poll(server::in, bool::in, int::in, io::di, io::uo) is det.
+
+%----------------------------------------------------------------------------%
+%
+% Connection properties and I/O.
+%
+
+:- func (connection::in) ^ server_handler =
+    (handler_func::out(handler_func)) is det.
+
+:- func connection ^ requested_uri = uri.
+
+%----------------------------------------------------------------------------%
+
+    % send_string_data(Connection, String, BytesWritten, !IO):
+    %
+:- pred send_string_data(connection::in, string::in, int::out,
+    io::di, io::uo) is det.
+
+    % printf_data(Connection, FmtString, Params, BytesWritten, !IO):
+    %
+:- pred printf_data(connection::in, string::in, list(poly_type)::in,
+    int::out, io::di, io::uo) is det.
 
 %----------------------------------------------------------------------------%
 %----------------------------------------------------------------------------%
 
 :- implementation.
 
-%----------------------------------------------------------------------------%
+:- import_module string.
 
+%----------------------------------------------------------------------------%
+%
+% Implemtation of server management functions and types in C
+%
+
+    % `include_file()' is preferred over `#include', since then linking
+    % to the library does not require the presence of the API header
+    %
 :- pragma foreign_decl("C", include_file("mongoose.h")).
 
 :- pragma foreign_type("C", server,
@@ -101,9 +142,10 @@
         http_error   - "MG_HTTP_ERROR"
     ]).
 
+
 :- pragma foreign_proc("C",
-    create(Server::uo, Handler::in(handler_func),
-        _IO0::di, _IO::uo), [promise_pure],
+    create(Server::uo, Handler::in(handler_func), _IO0::di, _IO::uo),
+    [promise_pure, may_call_mercury],
 "
     Server = mg_create_server((void*)Handler, (mg_handler_t)mercury_handler);
     mg_set_option(Server, ""listening_port"", ""8080"");
@@ -117,7 +159,7 @@
 
 :- pragma foreign_proc("C",
     poll(Server::in, Loop::in, Milliseconds::in, _IO0::di, _IO::uo),
-        [promise_pure],
+    [promise_pure, may_call_mercury],
 "
     do {
         mg_poll_server(Server, Milliseconds);
@@ -136,18 +178,42 @@
     "mercury_handler").
 
 mercury_handler(Connection, Event, !IO) = Result :-
-    Handler = server_handler(Connection),
-    Result = Handler(Connection, Event, !.IO, !:IO).
+    Result = (Connection ^ server_handler)(Connection, Event, !.IO, !:IO).
 
-:- func server_handler(connection::in) =
-    (handler_func::out(handler_func)) is det.
+%----------------------------------------------------------------------------%
+%
+% Implementation of connection properties and I/O.
+%
 
 :- pragma foreign_proc("C",
     server_handler(Connection::in) = (Handler::out(handler_func)),
-    [promise_pure],
+    [promise_pure, will_not_call_mercury],
 "
     Handler = (MR_Word)(Connection->server_param);
 ").
+
+:- pragma foreign_proc("C", requested_uri(Connection::in) = (Uri::out),
+    [promise_pure, will_not_call_mercury],
+"
+    Uri = (MR_String)(Connection->uri);
+").
+
+%----------------------------------------------------------------------------%
+
+:- pragma foreign_decl("C", local, "#include <string.h>").
+
+:- pragma foreign_proc("C",
+    send_string_data(Connection::in, String::in, BytesWritten::out,
+        _IO0::di, _IO::uo),
+    [promise_pure, will_not_call_mercury],
+"
+    BytesWritten = mg_send_data(Connection, String, strlen(String));
+").
+
+printf_data(Connection, FmtString, Params, BytesWritten, !IO) :-
+    send_string_data(Connection,
+        string.format(FmtString, Params),
+        BytesWritten, !IO).
 
 %----------------------------------------------------------------------------%
 :- end_module mercury_mongoose.
