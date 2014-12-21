@@ -8,6 +8,10 @@
 % Stability: low
 %----------------------------------------------------------------------------%
 % API to access the lightwight mongoose HTTP(S) web-server.
+% The open-source (GPLv2) version is used for this library, i.e. that
+% means that this library is also licensed under the GPLv2.
+% c.f.: https://github.com/cesanta/mongoose
+%       http://en.wikipedia.org/wiki/Mongoose_(web_server)
 %----------------------------------------------------------------------------%
 
 :- module mercury_mongoose.
@@ -25,10 +29,10 @@
 
 :- type connection.
 
-:- type callback_func == (func(connection, event, io, io) = callback_result).
-:- inst callback_func == (func(in, in, di, uo) = (out) is det).
+:- type handler_func == (func(connection, event, io, io) = handler_result).
+:- inst handler_func == (func(in, in, di, uo) = (out) is det).
 
-:- type callback_result
+:- type handler_result
     --->    true
     ;       false
     ;       more.
@@ -53,7 +57,7 @@
     ;       ping
     ;       pong.
 
-:- pred create(server_param::in, callback_func::in(callback_func), server::uo,
+:- pred create(server_param::in, handler_func::in(handler_func), server::uo,
             io::di, io::uo) is det.
 
 %----------------------------------------------------------------------------%
@@ -71,7 +75,7 @@
 :- pragma foreign_type("C", connection,
     "struct mg_connection *", [can_pass_as_mercury_type]).
 
-:- pragma foreign_enum("C", callback_result/0,
+:- pragma foreign_enum("C", handler_result/0,
     [
         true  - "MG_TRUE",
         false - "MG_FALSE",
@@ -93,7 +97,7 @@
     ]).
 
 :- pragma foreign_proc("C",
-    create(_ServerParam::in, Handler::in(callback_func), Server::uo,
+    create(_ServerParam::in, Handler::in(handler_func), Server::uo,
         _IO0::di, _IO::uo), [promise_pure],
 "
     Server = mg_create_server(NULL, (mg_handler_t)Handler);

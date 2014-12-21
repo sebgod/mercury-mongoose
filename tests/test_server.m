@@ -31,7 +31,7 @@
 
 %----------------------------------------------------------------------------%
 
-:- func handler `with_type` callback_func `with_inst` callback_func.
+:- func handler `with_type` handler_func `with_inst` handler_func.
 
 handler(_Connection, _Event, !IO) = true.
 
