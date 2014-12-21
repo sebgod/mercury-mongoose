@@ -27,16 +27,15 @@
 
 :- import_module mercury_mongoose.
 
+:- import_module bool.
 :- import_module require.
 
 %----------------------------------------------------------------------------%
 
-:- func handler `with_type` handler_func `with_inst` handler_func.
-
-handler(_Connection, _Event, !IO) = true.
-
 main(!IO) :-
-    create(none, handler, _Server, !IO).
+    create(none, Server, !IO),
+    poll(Server, yes, 1000, !IO),
+    destroy(Server, !IO).
 
 %----------------------------------------------------------------------------%
 :- end_module test_server.
