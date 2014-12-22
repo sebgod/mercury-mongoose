@@ -28,7 +28,9 @@
 
 :- type connection.
 
-:- type uri == string.
+:- type decoded_uri == string.  % TODO: URI ADT
+
+:- type ip_address == string.   % TODO: IP address ADT
 
 :- type handler_func == (func(connection, event, io, io) = handler_result).
 :- inst handler_func == (func(in, in, di, uo) = (out) is det).
@@ -84,7 +86,11 @@
 :- func (connection::in) ^ server_handler =
     (handler_func::out(handler_func)) is det.
 
-:- func connection ^ requested_uri = uri.
+:- func connection ^ requested_uri = decoded_uri.
+
+:- func connection ^ remote_ip = ip_address.
+
+:- func connection ^ local_ip = ip_address.
 
 %----------------------------------------------------------------------------%
 
@@ -142,7 +148,6 @@
         http_error   - "MG_HTTP_ERROR"
     ]).
 
-
 :- pragma foreign_proc("C",
     create(Server::uo, Handler::in(handler_func), _IO0::di, _IO::uo),
     [promise_pure, may_call_mercury],
@@ -196,6 +201,18 @@ mercury_handler(Connection, Event, !IO) = Result :-
     [promise_pure, will_not_call_mercury],
 "
     Uri = (MR_String)(Connection->uri);
+").
+
+:- pragma foreign_proc("C", remote_ip(Connection::in) = (IP::out),
+    [promise_pure, will_not_call_mercury],
+"
+    IP = (MR_String)(Connection->remote_ip);
+").
+
+:- pragma foreign_proc("C", local_ip(Connection::in) = (IP::out),
+    [promise_pure, will_not_call_mercury],
+"
+    IP = (MR_String)(Connection->local_ip);
 ").
 
 %----------------------------------------------------------------------------%
