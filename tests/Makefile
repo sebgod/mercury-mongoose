@@ -14,7 +14,7 @@ Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.m)
 	$(MMC) -f $(wildcard *.m) $(wildcard ../src/*.m)
 
 $(TEST_SERVER): Mercury.modules mongoose.$(OBJ_EXT)
-	$(MMC) --make $@ --link-object mongoose.$(OBJ_EXT) -lpthread
+	$(MMC) --make $@ --link-object mongoose.$(OBJ_EXT) $(MLLIBS)
 
 mongoose.$(OBJ_EXT):
 	cd ../src && $(MAKE) $@

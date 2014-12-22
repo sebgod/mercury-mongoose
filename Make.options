@@ -7,6 +7,7 @@ DEL_DIR  := $(RM) -fR
 
 # TODO: This needs to be determined from $(CC)
 OBJ_EXT := o
+MLLIBS := -lpthread
 
 # The expected outputs do not use CRLF line endings,
 # so if we are on Windows we need to account for this.
@@ -14,6 +15,7 @@ OBJ_EXT := o
 #
 ifdef WINDIR
     CFLAGS :=
+    MLLIBS += -lws2_32
     DIFF_FLAGS := --diff-flags "--strip-trailing-cr"
 else
     CFLAGS := -fPIC # PIC is not needed on Windows
