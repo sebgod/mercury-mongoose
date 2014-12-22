@@ -1,6 +1,6 @@
 MMC := mmc
 CC  := $(shell $(MMC) --output-cc)
-HARDLINK := cp -l -u
+HARDLINK := cp -l -u -f
 RM := rm
 DEL_FILE := $(RM) -f
 DEL_DIR  := $(RM) -fR

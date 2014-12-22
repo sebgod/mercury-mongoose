@@ -39,8 +39,14 @@ echo_server(Connection, Event, !IO) = Result :-
     ( Event = auth ->
         Result = true
     ; Event = request ->
-        printf_data(Connection, "Hello! Requested URI is [%s]\n",
-            [s(Connection^requested_uri)], _, !IO),
+        printf_data(Connection,
+            "Hello! Requested URI is [%s]
+Remote IP Address: %s
+Local IP Address: %s\n",
+            [s(Connection ^ requested_uri),
+             s(Connection ^ remote_ip),
+             s(Connection ^ local_ip)
+            ], _, !IO),
         Result = true
     ;
         Result = false
