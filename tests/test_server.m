@@ -54,6 +54,7 @@ Local IP Address: %s\n",
 
 main(!IO) :-
     create(Server, echo_server, !IO),
+    set_option(Server, listening_port, port(8080), !IO),
     poll(Server, yes, 1000, !IO),
     destroy(Server, !IO).
 

@@ -60,6 +60,18 @@
     ;       ping
     ;       pong.
 
+:- type option
+    --->    listening_port.
+
+:- inst listening_port ---> listening_port.
+
+:- type option_value
+    --->    port(port).
+
+:- inst port ---> port(ground).
+
+:- type port == int.
+
 %----------------------------------------------------------------------------%
 %
 % Server management predicates.
@@ -77,6 +89,16 @@
     % poll(Server, Loop, Milliseconds, !IO):
     %
 :- pred poll(server::in, bool::in, int::in, io::di, io::uo) is det.
+
+    % set_option(Server, Option, Value, !IO):
+    %
+:- pred set_option(server, option, option_value, io, io).
+:- mode set_option(in, in(listening_port), in(port), di, uo) is det.
+
+    % get_option(Server, Option, Value, !IO):
+    %
+:- pred get_option(server, option, option_value, io, io).
+:- mode get_option(in, in(listening_port), out(port), di, uo) is det.
 
 %----------------------------------------------------------------------------%
 %
@@ -109,6 +131,7 @@
 
 :- implementation.
 
+:- import_module int. % for int_to_string/1, det_to_int/1
 :- import_module string.
 
 %----------------------------------------------------------------------------%
@@ -153,7 +176,6 @@
     [promise_pure, may_call_mercury],
 "
     Server = mg_create_server((void*)Handler, (mg_handler_t)mercury_handler);
-    mg_set_option(Server, ""listening_port"", ""8080"");
 ").
 
 :- pragma foreign_proc("C",
@@ -169,6 +191,32 @@
     do {
         mg_poll_server(Server, Milliseconds);
     } while (Loop);
+").
+
+set_option(Server, listening_port, port(Port), !IO) :-
+    set_option_string(Server, "listening_port", int_to_string(Port), !IO).
+
+:- pred set_option_string(server::in, string::in, string::in, io::di, io::uo)
+    is det.
+
+:- pragma foreign_proc("C",
+    set_option_string(Server::in, Option::in, Value::in, _IO0::di, _IO::uo),
+        [promise_pure],
+"
+    mg_set_option(Server, Option, Value);
+").
+
+get_option(Server, listening_port, port(det_to_int(Port)), !IO) :-
+    get_option_string(Server, "listening_port", Port, !IO).
+
+:- pred get_option_string(server::in, string::in, string::out, io::di, io::uo)
+    is det.
+
+:- pragma foreign_proc("C",
+    get_option_string(Server::in, Option::in, Value::out, _IO0::di, _IO::uo),
+        [promise_pure],
+"
+    Value = mg_get_option(Server, Option);
 ").
 
 %----------------------------------------------------------------------------%
