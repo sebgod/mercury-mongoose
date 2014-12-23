@@ -1,5 +1,6 @@
 MMC := mmc
 CC  := $(shell $(MMC) --output-cc)
+CC_TYPE := $(shell $(MMC) --output-cc-type)
 HARDLINK := cp -l -u -f
 RM := rm
 DEL_FILE := $(RM) -f
