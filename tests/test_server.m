@@ -41,17 +41,20 @@ echo_server(Connection, Event, !IO) = Result :-
     ; Event = request ->
         send_header(Connection, "Content-Type",
             "text/plain; charset=utf-8", !IO),
+        get_status(Connection, Status, !IO),
         printf_data(Connection,
             "Connection properties:
             Hello! Requested URI is [%s]
             Remote IP Address: %s:%d
             Local IP Address: %s:%d
+            HTTP Status: %d
             Is Websocket: %s",
             [s(Connection ^ requested_uri),
              s(Connection ^ remote_ip),
              i(Connection ^ remote_port),
              s(Connection ^ local_ip),
              i(Connection ^ local_port),
+             i(Status),
              s(( if is_websocket(Connection) then "yes" else "no" ))
             ], _, !IO),
         Result = true
