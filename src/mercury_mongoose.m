@@ -30,6 +30,12 @@
 
 :- type decoded_uri == string.  % TODO: URI ADT
 
+:- type socket_address
+    --->    socket_address(
+                socket_ip   :: ip_address,
+                socket_port :: port
+            ).
+
 :- type ip_address == string.   % TODO: IP address ADT
 
 :- type handler_func == (func(connection, event, io, io) = handler_result).
@@ -72,6 +78,8 @@
 
 :- type port == int.
 
+:- type http_status == int.
+
 %----------------------------------------------------------------------------%
 %
 % Server management predicates.
@@ -110,9 +118,23 @@
 
 :- func connection ^ requested_uri = decoded_uri.
 
+:- func connection ^ remote_address = socket_address.
+
 :- func connection ^ remote_ip = ip_address.
 
+:- func connection ^ remote_port = port.
+
+:- func connection ^ local_address = socket_address.
+
 :- func connection ^ local_ip = ip_address.
+
+:- func connection ^ local_port = port.
+
+:- func connection ^ http_version = string.
+
+    % is_websocket(Connection):
+    %
+:- pred is_websocket(connection::in) is semidet.
 
 %----------------------------------------------------------------------------%
 
@@ -125,6 +147,19 @@
     %
 :- pred printf_data(connection::in, string::in, list(poly_type)::in,
     int::out, io::di, io::uo) is det.
+
+    % get_status(Connection, Status, !IO):
+    %
+:- pred get_status(connection::in, http_status::out, io::di, io::uo) is det.
+
+    % send_status(Connection, Status, !IO):
+    %
+:- pred send_status(connection::in, http_status::in, io::di, io::uo) is det.
+
+    % send_header(Connection, Header, Value, !IO):
+    %
+:- pred send_header(connection::in, string::in, string::in, io::di, io::uo)
+    is det.
 
 %----------------------------------------------------------------------------%
 %----------------------------------------------------------------------------%
@@ -216,7 +251,8 @@ get_option(Server, listening_port, port(det_to_int(Port)), !IO) :-
     get_option_string(Server::in, Option::in, Value::out, _IO0::di, _IO::uo),
         [promise_pure],
 "
-    Value = mg_get_option(Server, Option);
+    /* NOTE: Const cast */
+    Value = (MR_String)((MR_ConstString)mg_get_option(Server, Option));
 ").
 
 %----------------------------------------------------------------------------%
@@ -251,16 +287,52 @@ mercury_handler(Connection, Event, !IO) = Result :-
     Uri = (MR_String)(Connection->uri);
 ").
 
+:- pragma foreign_proc("C", http_version(Connection::in) = (Version::out),
+    [promise_pure, will_not_call_mercury],
+"
+    Version = (MR_String)(Connection->http_version);
+").
+
+:- pragma foreign_proc("C", is_websocket(Connection::in),
+    [promise_pure, will_not_call_mercury],
+"
+    SUCCESS_INDICATOR = Connection->is_websocket ? MR_TRUE : MR_FALSE;
+").
+
+%----------------------------------------------------------------------------%
+
+Connection ^ remote_address =
+    socket_address(Connection ^ remote_ip, Connection ^ remote_port).
+
 :- pragma foreign_proc("C", remote_ip(Connection::in) = (IP::out),
     [promise_pure, will_not_call_mercury],
 "
-    IP = (MR_String)(Connection->remote_ip);
+    /* NOTE: Const cast */
+    IP = (MR_String)((MR_ConstString)(Connection->remote_ip));
 ").
+
+:- pragma foreign_proc("C", remote_port(Connection::in) = (Port::out),
+    [promise_pure, will_not_call_mercury],
+"
+    Port = (MR_Integer)(Connection->remote_port);
+").
+
+%----------------------------------------------------------------------------%
+
+Connection ^ local_address =
+    socket_address(Connection ^ local_ip, Connection ^ local_port).
 
 :- pragma foreign_proc("C", local_ip(Connection::in) = (IP::out),
     [promise_pure, will_not_call_mercury],
 "
-    IP = (MR_String)(Connection->local_ip);
+    /* NOTE: Const cast */
+    IP = (MR_String)((MR_ConstString)(Connection->local_ip));
+").
+
+:- pragma foreign_proc("C", local_port(Connection::in) = (Port::out),
+    [promise_pure, will_not_call_mercury],
+"
+    Port = (MR_Integer)(Connection->local_port);
 ").
 
 %----------------------------------------------------------------------------%
@@ -279,6 +351,27 @@ printf_data(Connection, FmtString, Params, BytesWritten, !IO) :-
     send_string_data(Connection,
         string.format(FmtString, Params),
         BytesWritten, !IO).
+
+:- pragma foreign_proc("C",
+    get_status(Connection::in, Status::out, _IO0::di, _IO::uo),
+    [promise_pure, will_not_call_mercury],
+"
+    Status = Connection->status_code;
+").
+
+:- pragma foreign_proc("C",
+    send_status(Connection::in, Status::in, _IO0::di, _IO::uo),
+    [promise_pure, will_not_call_mercury],
+"
+    mg_send_status(Connection, Status);
+").
+
+:- pragma foreign_proc("C",
+    send_header(Connection::in, Header::in, Value::in, _IO0::di, _IO::uo),
+    [promise_pure, will_not_call_mercury],
+"
+    mg_send_header(Connection, Header, Value);
+").
 
 %----------------------------------------------------------------------------%
 :- end_module mercury_mongoose.

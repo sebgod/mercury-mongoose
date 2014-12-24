@@ -39,13 +39,20 @@ echo_server(Connection, Event, !IO) = Result :-
     ( Event = auth ->
         Result = true
     ; Event = request ->
+        send_header(Connection, "Content-Type",
+            "text/plain; charset=utf-8", !IO),
         printf_data(Connection,
-            "Hello! Requested URI is [%s]
-Remote IP Address: %s
-Local IP Address: %s\n",
+            "Connection properties:
+            Hello! Requested URI is [%s]
+            Remote IP Address: %s:%d
+            Local IP Address: %s:%d
+            Is Websocket: %s",
             [s(Connection ^ requested_uri),
              s(Connection ^ remote_ip),
-             s(Connection ^ local_ip)
+             i(Connection ^ remote_port),
+             s(Connection ^ local_ip),
+             i(Connection ^ local_port),
+             s(( if is_websocket(Connection) then "yes" else "no" ))
             ], _, !IO),
         Result = true
     ;
