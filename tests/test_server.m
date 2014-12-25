@@ -50,8 +50,7 @@ echo_prop(Connection, Event, !IO) = Result :-
             send_status(Connection, 404, !IO),
             Prop = "<file not found>"
         ),
-        send_header(Connection, "Content-Type",
-            "application/json", !IO),
+        send_header(Connection, "Content-Type", "application/json", !IO),
         get_status(Connection, StatusCode, !IO),
         printf_data(Connection, "{ \"%s\": \"%s\", \"Status\": %d }",
             [s(Uri), s(Prop), i(StatusCode)], _Bytes, !IO),
