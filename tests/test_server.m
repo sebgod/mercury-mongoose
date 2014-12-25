@@ -33,34 +33,35 @@
 
 %----------------------------------------------------------------------------%
 
-:- func echo_server `with_type` handler_func `with_inst` handler_func.
+:- func echo_prop `with_type` handler_func `with_inst` handler_func.
 
-echo_server(Connection, Event, !IO) = Result :-
+echo_prop(Connection, Event, !IO) = Result :-
     ( Event = auth ->
         Result = true
     ; Event = request ->
+        Uri = Connection ^ requested_uri,
+        ( if Uri = "/remote_ip" then
+            Prop = Connection ^ remote_ip
+        else if Uri = "/local_ip" then
+            Prop = Connection ^ local_ip
+        else if Uri = "/is_websocket" then
+            Prop = ( if is_websocket(Connection) then "yes" else "no" )
+        else
+            send_status(Connection, 404, !IO),
+            Prop = "<file not found>"
+        ),
         send_header(Connection, "Content-Type",
-            "text/plain; charset=utf-8", !IO),
-        printf_data(Connection,
-            "Connection properties:
-            Hello! Requested URI is [%s]
-            Remote IP Address: %s:%d
-            Local IP Address: %s:%d
-            Is Websocket: %s",
-            [s(Connection ^ requested_uri),
-             s(Connection ^ remote_ip),
-             i(Connection ^ remote_port),
-             s(Connection ^ local_ip),
-             i(Connection ^ local_port),
-             s(( if is_websocket(Connection) then "yes" else "no" ))
-            ], _, !IO),
+            "application/json", !IO),
+        get_status(Connection, StatusCode, !IO),
+        printf_data(Connection, "{ \"%s\": \"%s\", \"Status\": %d }",
+            [s(Uri), s(Prop), i(StatusCode)], _Bytes, !IO),
         Result = true
     ;
         Result = false
     ).
 
 main(!IO) :-
-    create(Server, echo_server, !IO),
+    create(Server, echo_prop, !IO),
     set_option(Server, listening_port, port(8080), !IO),
     poll(Server, yes, 1000, !IO),
     destroy(Server, !IO).
