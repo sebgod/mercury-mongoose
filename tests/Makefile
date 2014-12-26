@@ -1,7 +1,6 @@
 include ../Make.options
 
 TEST_SERVER := test_mercury_mongoose
-MONGOOSE_OBJ := mongoose$(OBJ_EXT)
 
 .PHONY: runtests
 runtests: $(TEST_SERVER).start

@@ -14,6 +14,9 @@ MLLIBS := -lpthread
 CFLAGS :=
 DIFF_FLAGS :=
 
+# composed common variables
+MONGOOSE_OBJ := mongoose$(OBJ_EXT)
+
 # The expected outputs do not use CRLF line endings,
 # so if we are on Windows we need to account for this.
 # We assume the use of GNU diff if this is the case.

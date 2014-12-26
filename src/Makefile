@@ -1,13 +1,13 @@
 include ../Make.options
 
 .PHONY: default
-default: mongoose.$(OBJ_EXT)
+default: $(MONGOOSE_OBJ)
 	$(MMC) --link-object $^ -m
 
 mongoose.%: mongoose/mongoose.%
 	$(HARDLINK) $^ $@
 
-mongoose.$(OBJ_EXT): mongoose.c mongoose.h
+$(MONGOOSE_OBJ): mongoose.c mongoose.h
 	$(CC) -c $(CFLAGS) $^
 
 .PHONY: clean
