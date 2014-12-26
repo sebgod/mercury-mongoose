@@ -7,7 +7,8 @@ runtests: $(TEST_SERVER).start
 
 %.stop:
 	@echo Stopping all running $* instances
-	@($(TASKKILL) $*$(EXE_EXT) || ( $(SLEEP) 1 && $(TASKKILL_FORCE) $*$(EXE_EXT) ) ) || true
+	@($(KILLALL) $*$(EXE_EXT) || \
+		( $(SLEEP) 1 && $(KILLALL_FORCE) $*$(EXE_EXT) ) ) || true
 
 %.start: %.stop %
 	@echo Starting $* as a deamon
@@ -24,9 +25,9 @@ $(MONGOOSE_OBJ):
 	$(HARDLINK) ../src/$@ $@
 
 .PHONY: clean
-clean:
+clean: $(TEST_SERVER).stop
 	$(MMC) --make $(TEST_SERVER).clean
 	$(DEL_DIR) Mercury
 	$(DEL_FILE) Mercury.modules
 	$(DEL_FILE) FAILED_TESTS ABORTED_TESTS
-	$(DEL_FILE) mongoose$(OBJ_EXT)
+	$(DEL_FILE) $(MONGOOSE_OBJ)
