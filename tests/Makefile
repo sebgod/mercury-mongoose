@@ -1,6 +1,6 @@
 include ../Make.options
 
-TEST_SERVER := test_server
+TEST_SERVER := test_mercury_mongoose
 MONGOOSE_OBJ := mongoose$(OBJ_EXT)
 
 .PHONY: runtests
@@ -11,6 +11,7 @@ runtests: $(TEST_SERVER).start
 	@($(TASKKILL) $*$(EXE_EXT) || ( $(SLEEP) 1 && $(TASKKILL_FORCE) $*$(EXE_EXT) ) ) || true
 
 %.start: %.stop %
+	@echo Starting $* as a deamon
 	./$* &
 
 Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.m)
