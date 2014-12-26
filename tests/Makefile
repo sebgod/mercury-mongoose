@@ -4,13 +4,13 @@ TEST_SERVER := test_server
 MONGOOSE_OBJ := mongoose$(OBJ_EXT)
 
 .PHONY: runtests
-runtests: $(TEST_SERVER).stop $(TEST_SERVER) $(TEST_SERVER).start
+runtests: $(TEST_SERVER).start
 
 %.stop:
 	@echo Stopping all running $* instances
 	@($(TASKKILL) $*$(EXE_EXT) || ( $(SLEEP) 1 && $(TASKKILL_FORCE) $*$(EXE_EXT) ) ) || true
 
-%.start:
+%.start: %.stop %
 	./$* &
 
 Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.m)
