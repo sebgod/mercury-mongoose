@@ -12,8 +12,9 @@ $(MONGOOSE_OBJ): mongoose.c mongoose.h
 
 .PHONY: clean
 clean:
-	rm -f mongoose.[och]
-	rm -f *.gch
-	rm -f *.so
-	rm -f *.a
-	rm -f *.err
+	$(DEL_DIR) Mercury
+	$(DEL_FILE) mongoose.[och]
+	$(DEL_FILE) *.gch
+	$(DEL_FILE) *.so
+	$(DEL_FILE) *.a
+	$(DEL_FILE) *.err
