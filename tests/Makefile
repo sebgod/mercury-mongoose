@@ -10,15 +10,15 @@ runtests: $(TEST_SERVER).start
 	@($(KILLALL) $*$(EXE_EXT) || \
 		( $(SLEEP) 1 && $(KILLALL_FORCE) $*$(EXE_EXT) ) ) || true
 
-%.start: %.stop %
+%.start: %.build
 	@echo Starting $* as a deamon
 	./$* &
 
 Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.m)
 	$(MMC) -f $(wildcard *.m) $(wildcard ../src/*.m)
 
-$(TEST_SERVER): Mercury.modules $(MONGOOSE_OBJ)
-	$(MMC) --make $@ -O5 --link-object $(MONGOOSE_OBJ) $(MLLIBS)
+%.build: %.stop Mercury.modules $(MONGOOSE_OBJ)
+	$(MMC) --make $* -O5 --link-object $(MONGOOSE_OBJ) $(MLLIBS)
 
 $(MONGOOSE_OBJ):
 	cd ../src && $(MAKE) $@
