@@ -1,22 +1,25 @@
 include ../Make.options
 
 TEST_SERVER := test_server
+MONGOOSE_OBJ := mongoose$(OBJ_EXT)
 
 .PHONY: runtests
-runtests: $(TEST_SERVER)
-	@./$^ $(DIFF_FLAGS)
+runtests: $(TEST_SERVER).stop $(TEST_SERVER) $(TEST_SERVER).start
 
-.PHONY: runtests-verbose
-runtests-verbose: $(TEST_SERVER)
-	@./$(TEST_SERVER) $(DIFF_FLAGS) -v
+%.stop:
+	@echo Stopping all running $* instances
+	@($(TASKKILL) $*$(EXE_EXT) || ( $(SLEEP) 1 && $(TASKKILL_FORCE) $*$(EXE_EXT) ) ) || true
+
+%.start:
+	./$* &
 
 Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.m)
 	$(MMC) -f $(wildcard *.m) $(wildcard ../src/*.m)
 
-$(TEST_SERVER): Mercury.modules mongoose.$(OBJ_EXT)
-	$(MMC) --make $@ -O5 --link-object mongoose.$(OBJ_EXT) $(MLLIBS)
+$(TEST_SERVER): Mercury.modules $(MONGOOSE_OBJ)
+	$(MMC) --make $@ -O5 --link-object $(MONGOOSE_OBJ) $(MLLIBS)
 
-mongoose.$(OBJ_EXT):
+$(MONGOOSE_OBJ):
 	cd ../src && $(MAKE) $@
 	$(HARDLINK) ../src/$@ $@
 
@@ -26,4 +29,4 @@ clean:
 	$(DEL_DIR) Mercury
 	$(DEL_FILE) Mercury.modules
 	$(DEL_FILE) FAILED_TESTS ABORTED_TESTS
-	$(DEL_FILE) mongoose.$(OBJ_EXT)
+	$(DEL_FILE) mongoose$(OBJ_EXT)

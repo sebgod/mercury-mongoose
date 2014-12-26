@@ -7,8 +7,9 @@ DEL_FILE := $(RM) -f
 DEL_DIR  := $(RM) -fR
 
 # TODO: This needs to be determined from $(CC)
-OBJ_EXT := o
+OBJ_EXT := .o
 MLLIBS := -lpthread
+SLEEP := sleep
 
 # The expected outputs do not use CRLF line endings,
 # so if we are on Windows we need to account for this.
@@ -18,7 +19,13 @@ ifdef WINDIR
     CFLAGS :=
     MLLIBS += -lws2_32
     DIFF_FLAGS := --diff-flags "--strip-trailing-cr"
+    EXE_EXT := .exe
+    TASKKILL := taskkill -t -im
+    TASKKILL_FORCE := taskkill -F  -im
 else
     CFLAGS := -fPIC # PIC is not needed on Windows
     DIFF_FLAGS :=
+    EXE_EXT :=
+    TASKKILL := killall
+    TASKKILL_FORCE := killall -9
 endif
