@@ -49,41 +49,40 @@ echo_prop(Connection, Event, !IO) = HandlerResult :-
         then
             ( if File = ""; File = "index.html" then
                 send_file(Connection, "internal/index.html", !IO),
-                MaybeData = no
+                Data = {no, more}
             else if File = "remote_ip" then
-                MaybeData = yes(Connection ^ remote_ip)
+                Data = {yes(Connection ^ remote_ip), true}
             else if File = "local_ip" then
-                MaybeData = yes(Connection ^ local_ip)
+                Data = {yes(Connection ^ local_ip), true}
             else if File = "is_websocket" then
-                MaybeData = yes(is_websocket(Connection) -> "yes" ; "no")
+                Data = {yes(is_websocket(Connection) -> "yes" ; "no"), true}
             else
                 send_status(Connection, 404, !IO),
-                MaybeData = no
-            ),
-            HandlerResult = (MaybeData = no -> more ; true)
+                Data = {no, false}
+            )
         else
-            send_status(Connection, 403, !IO),
-            MaybeData = no,
-            HandlerResult = true
+            Data = {no, false}
         ),
-        ( if MaybeData = yes(Data) then
+        ( if Data = {yes(Value), _} then
             send_header(Connection, "Content-Type",
                 "application/json; charset=utf-8", !IO),
             get_status(Connection, StatusCode, !IO),
             printf_data(Connection,
                 "{ \"%s\": \"%s\", \"Status\": %d }",
-                [s(to_encoded_string(RequestPath)), s(Data), i(StatusCode)],
+                [s(to_encoded_string(RequestPath)), s(Value), i(StatusCode)],
                 _Bytes,
                 !IO)
         else
             true
-        )
+        ),
+        Data = {_, HandlerResult}
     else
         HandlerResult = false
     ).
 
 main(!IO) :-
     create(Server, echo_prop, !IO),
+    set_option(Server, document_root,  path("."), !IO),
     set_option(Server, listening_port, port(8080), !IO),
     poll(Server, yes, 1000, !IO),
     destroy(Server, !IO).

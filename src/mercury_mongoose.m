@@ -69,14 +69,20 @@
     ;       pong.
 
 :- type option
-    --->    listening_port.
+    --->    listening_port
+    ;       document_root.
 
 :- inst listening_port ---> listening_port.
 
+:- inst document_root ---> document_root.
+
 :- type option_value
-    --->    port(port).
+    --->    port(port)
+    ;       path(string).
 
 :- inst port ---> port(ground).
+
+:- inst path ---> path(ground).
 
 :- type port == int.
 
@@ -105,6 +111,7 @@
     %
 :- pred set_option(server, option, option_value, io, io).
 :- mode set_option(in, in(listening_port), in(port), di, uo) is det.
+:- mode set_option(in, in(document_root),  in(path), di, uo) is det.
 
     % get_option(Server, Option, Value, !IO):
     %
@@ -243,6 +250,9 @@
 
 set_option(Server, listening_port, port(Port), !IO) :-
     set_option_string(Server, "listening_port", int_to_string(Port), !IO).
+
+set_option(Server, document_root, path(Root), !IO) :-
+    set_option_string(Server, "document_root", Root, !IO).
 
 :- pred set_option_string(server::in, string::in, string::in, io::di, io::uo)
     is det.
