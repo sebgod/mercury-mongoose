@@ -30,6 +30,7 @@
 
 :- import_module bool.
 :- import_module list.
+:- import_module maybe.
 :- import_module string.
 
 %----------------------------------------------------------------------------%
@@ -42,31 +43,41 @@ echo_prop(Connection, Event, !IO) = HandlerResult :-
         HandlerResult = true
     else if Event = request then
         RequestPath = Connection ^ request_path,
-        PathElements = split_path(RequestPath),
+        PathElements = split_and_decode_path(RequestPath),
         ( if
-            PathElements = ["internal", File | _]
+            PathElements = ["", "internal", File | _]
         then
-            ( if File = "remote_ip" then
-                Prop = Connection ^ remote_ip
+            ( if File = ""; File = "index.html" then
+                send_file(Connection, "internal/index.html", !IO),
+                MaybeData = no
+            else if File = "remote_ip" then
+                MaybeData = yes(Connection ^ remote_ip)
             else if File = "local_ip" then
-                Prop = Connection ^ local_ip
+                MaybeData = yes(Connection ^ local_ip)
             else if File = "is_websocket" then
-                Prop = ( if is_websocket(Connection) then "yes" else "no" )
+                MaybeData = yes(is_websocket(Connection) -> "yes" ; "no")
             else
                 send_status(Connection, 404, !IO),
-                Prop = "<property not supported!>"
-            )
+                MaybeData = no
+            ),
+            HandlerResult = (MaybeData = no -> more ; true)
         else
             send_status(Connection, 403, !IO),
-            Prop = "<path not allowed>"
+            MaybeData = no,
+            HandlerResult = true
         ),
-        send_header(Connection, "Content-Type", "application/json", !IO),
-        get_status(Connection, StatusCode, !IO),
-        printf_data(Connection, "{ \"%s\": \"%s\", \"Status\": %d }",
-            [s(to_encoded_string(RequestPath)), s(Prop), i(StatusCode)],
-            _Bytes,
-            !IO),
-        HandlerResult = true
+        ( if MaybeData = yes(Data) then
+            send_header(Connection, "Content-Type",
+                "application/json; charset=utf-8", !IO),
+            get_status(Connection, StatusCode, !IO),
+            printf_data(Connection,
+                "{ \"%s\": \"%s\", \"Status\": %d }",
+                [s(to_encoded_string(RequestPath)), s(Data), i(StatusCode)],
+                _Bytes,
+                !IO)
+        else
+            true
+        )
     else
         HandlerResult = false
     ).

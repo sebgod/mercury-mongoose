@@ -164,6 +164,16 @@
 :- pred send_header(connection::in, string::in, string::in, io::di, io::uo)
     is det.
 
+    % send_file(Connection, FilePath, !IO):
+    % calls `send_file/5' without a header.
+    %
+:- pred send_file(connection::in, string::in, io::di, io::uo) is det.
+
+    % send_file(Connection, FilePath, Header, !IO):
+    %
+:- pred send_file(connection::in, string::in, string::in, io::di, io::uo)
+    is det.
+
 %----------------------------------------------------------------------------%
 %----------------------------------------------------------------------------%
 
@@ -375,6 +385,20 @@ printf_data(Connection, FmtString, Params, BytesWritten, !IO) :-
     [promise_pure, will_not_call_mercury],
 "
     mg_send_header(Connection, Header, Value);
+").
+
+:- pragma foreign_proc("C",
+    send_file(Connection::in, FilePath::in, _IO0::di, _IO::uo),
+    [promise_pure, will_not_call_mercury],
+"
+    mg_send_file(Connection, FilePath, NULL);
+").
+
+:- pragma foreign_proc("C",
+    send_file(Connection::in, FilePath::in, Header::in, _IO0::di, _IO::uo),
+    [promise_pure, will_not_call_mercury],
+"
+    mg_send_file(Connection, FilePath, Header);
 ").
 
 %----------------------------------------------------------------------------%
