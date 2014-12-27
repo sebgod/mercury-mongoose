@@ -1,9 +1,7 @@
 include ../Make.options
 
-TEST_SERVER := test_mercury_mongoose
-
 .PHONY: runtests
-runtests: $(TEST_SERVER).start
+runtests: $(MONGOOSE_TEST_SERVER).start
 
 %.stop:
 	@echo Stopping all running $* instances
@@ -25,8 +23,8 @@ $(MONGOOSE_OBJ):
 	$(HARDLINK) ../src/$@ $@
 
 .PHONY: clean
-clean: $(TEST_SERVER).stop
-	$(MMC) --make $(TEST_SERVER).clean
+clean: $(MONGOOSE_TEST_SERVER).stop
+	$(MMC) --make $(MONGOOSE_TEST_SERVER).clean
 	$(DEL_DIR) Mercury
 	$(DEL_FILE) Mercury.modules
 	$(DEL_FILE) FAILED_TESTS ABORTED_TESTS

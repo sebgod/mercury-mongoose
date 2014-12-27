@@ -13,5 +13,9 @@ clean:
 tests:
 	cd tests && $(MAKE) runtests
 
+.PHONY: stop
+stop:
+	cd tests && $(MAKE) $(MONGOOSE_TEST_SERVER).stop
+
 .PHONY: all
 all: default tests
