@@ -4,20 +4,21 @@ CC  := $(shell $(MMC) --output-cc)
 CC_TYPE := $(shell $(MMC) --output-cc-type)
 HARDLINK := cp -l -u -f
 RM := rm
+# composed common variables
+DEL_FILE := $(RM) -f
+DEL_DIR  := $(RM) -fR
 
 # TODO: This needs to be determined from $(CC)
 OBJ_EXT := .o
 EXE_EXT :=
 MLLIBS := -lpthread
-CFLAGS :=
 DIFF_FLAGS :=
 KILLALL := killall
 KILLALL_FORCE := killall -9
 
-# composed common variables
+# Mongoose related variables
+MONGOOSE_CFLAGS := -DMONGOOSE_NO_URL_DECODE
 MONGOOSE_OBJ := mongoose$(OBJ_EXT)
-DEL_FILE := $(RM) -f
-DEL_DIR  := $(RM) -fR
 
 # The expected outputs do not use CRLF line endings,
 # so if we are on Windows we need to account for this.
@@ -30,5 +31,5 @@ ifdef WINDIR
     KILLALL := taskkill -t -im
     KILLALL_FORCE := taskkill -F  -im
 else
-    CFLAGS += -fPIC # PIC is not needed on Windows
+    MONGOOSE_CFLAGS += -fPIC # PIC is not needed on Windows
 endif

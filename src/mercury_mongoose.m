@@ -18,6 +18,10 @@
 
 :- interface.
 
+:- include_module mercury_mongoose.path_util.
+
+:- import_module mercury_mongoose.path_util.
+
 :- import_module bool.
 :- import_module io.
 :- import_module list.
@@ -27,8 +31,6 @@
 :- type server.
 
 :- type connection.
-
-:- type decoded_uri == string.  % TODO: URI ADT
 
 :- type socket_address
     --->    socket_address(
@@ -95,6 +97,7 @@
 :- pred destroy(server::in, io::di, io::uo) is det.
 
     % poll(Server, Loop, Milliseconds, !IO):
+    % TODO: Create loop type to stop on signals, etc.
     %
 :- pred poll(server::in, bool::in, int::in, io::di, io::uo) is det.
 
@@ -116,7 +119,7 @@
 :- func (connection::in) ^ server_handler =
     (handler_func::out(handler_func)) is det.
 
-:- func connection ^ requested_uri = decoded_uri.
+:- func connection ^ request_path = uri_encoded_path.
 
 :- func connection ^ remote_address = socket_address.
 
@@ -281,7 +284,8 @@ mercury_handler(Connection, Event, !IO) = Result :-
     Handler = (MR_Word)(Connection->server_param);
 ").
 
-:- pragma foreign_proc("C", requested_uri(Connection::in) = (Uri::out),
+:- pragma foreign_proc("C",
+    request_path(Connection::in) = (Uri::out),
     [promise_pure, will_not_call_mercury],
 "
     Uri = (MR_String)(Connection->uri);

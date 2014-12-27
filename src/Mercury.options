@@ -1,4 +1,2 @@
 MAIN_TARGET = libmercury_mongoose
 MCFLAGS = --use-grade-subdirs
-
-MCFLAGS-mercury_mongoose = --no-warn-nothing-exported --no-warn-interface-imports
