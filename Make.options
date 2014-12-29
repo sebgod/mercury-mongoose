@@ -1,5 +1,5 @@
 MMC := mmc
-MCFLAGS := -O5 --intermod-opt
+MCFLAGS := -O5 --intermod-opt --use-grade-subdirs
 SLEEP := sleep
 CC  := $(shell $(MMC) --output-cc)
 CC_TYPE := $(shell $(MMC) --output-cc-type)
