@@ -19,3 +19,4 @@ clean:
 	$(DEL_FILE) *.mh
 	$(DEL_FILE) *.so
 	$(DEL_FILE) *.a
+	$(DEL_FILE) *.init
