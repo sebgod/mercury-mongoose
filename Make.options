@@ -5,6 +5,10 @@ CC  := $(shell $(MMC) --output-cc)
 CC_TYPE := $(shell $(MMC) --output-cc-type)
 HARDLINK := cp -l -u -f
 RM := rm
+CURL := curl
+CURL_FLAGS := -s -L
+DIFF := diff
+DIFF_FLAGS := -u
 # composed common variables
 DEL_FILE := $(RM) -f
 DEL_DIR  := $(RM) -fR
@@ -13,7 +17,6 @@ DEL_DIR  := $(RM) -fR
 OBJ_EXT := .o
 EXE_EXT :=
 MLLIBS := -lpthread
-DIFF_FLAGS :=
 KILLALL := killall
 KILLALL_FORCE := killall -9
 
@@ -21,6 +24,7 @@ KILLALL_FORCE := killall -9
 MONGOOSE_CFLAGS := -DMONGOOSE_NO_URL_DECODE
 MONGOOSE_OBJ := mongoose$(OBJ_EXT)
 MONGOOSE_TEST_SERVER := test_mercury_mongoose
+MONGOOSE_TEST_PORT := 8080
 
 # The expected outputs do not use CRLF line endings,
 # so if we are on Windows we need to account for this.
