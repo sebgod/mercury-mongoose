@@ -1,4 +1,5 @@
 MMC := mmc
+MCFLAGS := -O5 --intermod-opt
 SLEEP := sleep
 CC  := $(shell $(MMC) --output-cc)
 CC_TYPE := $(shell $(MMC) --output-cc-type)

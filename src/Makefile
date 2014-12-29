@@ -2,7 +2,7 @@ include ../Make.options
 
 .PHONY: default
 default: $(MONGOOSE_OBJ)
-	$(MMC) --link-object $^ -m
+	$(MMC) $(MCFLAGS) --link-object $^ -m
 
 $(MONGOOSE_OBJ): mongoose.c mongoose.h
 	$(CC) -c $(MONGOOSE_CFLAGS) $^
