@@ -81,9 +81,18 @@ echo_prop(Connection, Event, !IO) = HandlerResult :-
     ).
 
 main(!IO) :-
+    get_environment_var("MONGOOSE_TEST_PORT", MaybePort, !IO),
+    Port = ( if
+        MaybePort = yes(PortStr),
+        to_int(PortStr, PortNumber)
+    then
+        port(PortNumber)
+    else
+        port(8080)
+    ),
     create(Server, echo_prop, !IO),
     set_option(Server, document_root,  path("."), !IO),
-    set_option(Server, listening_port, port(8080), !IO),
+    set_option(Server, listening_port, Port, !IO),
     poll(Server, yes, 1000, !IO),
     destroy(Server, !IO).
 

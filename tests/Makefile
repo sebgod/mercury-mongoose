@@ -13,7 +13,7 @@ runtests: $(MONGOOSE_TEST_SERVER).start $(RESS)
 
 %.start: %.build
 	@echo Starting $* as a deamon
-	./$* &
+	MONGOOSE_TEST_PORT=$(MONGOOSE_TEST_PORT) ./$* &
 
 Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.m)
 	$(MAKE) tests.clean
