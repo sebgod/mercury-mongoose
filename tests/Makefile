@@ -14,6 +14,8 @@ runtests: $(MONGOOSE_TEST_SERVER).start $(RESS)
 %.start: %.build
 	@echo Starting $* as a deamon
 	MONGOOSE_TEST_PORT=$(MONGOOSE_TEST_PORT) ./$* &
+	@echo Wait a second until server is operational
+	@$(SLEEP) 1
 
 Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.m)
 	$(MAKE) tests.clean
@@ -27,6 +29,7 @@ $(MONGOOSE_OBJ):
 	$(HARDLINK) ../src/$@ $@
 
 %.res: %.exp
+	@echo testing $*
 	$(CURL) $(CURL_FLAGS) http://127.0.0.1:$(MONGOOSE_TEST_PORT)/$* | \
 		$(DIFF) $(DIFF_FLAGS) $< - >$*.res
 
