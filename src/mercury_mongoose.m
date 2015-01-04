@@ -12,6 +12,10 @@
 % means that this library is also licensed under the GPLv2.
 % c.f.: https://github.com/cesanta/mongoose
 %       http://en.wikipedia.org/wiki/Mongoose_(web_server)
+%
+% TODO: check if http://www.microhowto.info/howto/
+%                serve_web_pages_using_an_embedded_http_server_in_java.html
+%       is compatible with the mongoose api.
 %----------------------------------------------------------------------------%
 
 :- module mercury_mongoose.
