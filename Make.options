@@ -24,7 +24,7 @@ KILLALL_FORCE := killall -9
 MONGOOSE_CFLAGS := -DMONGOOSE_NO_URL_DECODE
 MONGOOSE_OBJ := mongoose$(OBJ_EXT)
 MONGOOSE_TEST_SERVER := test_mercury_mongoose
-MONGOOSE_TEST_PORT := 8080
+MONGOOSE_TEST_PORT := 9999
 
 # The expected outputs do not use CRLF line endings,
 # so if we are on Windows we need to account for this.
