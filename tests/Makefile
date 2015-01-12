@@ -5,6 +5,7 @@ RESS := $(patsubst %.exp,%.res,$(EXPS))
 
 .PHONY: runtests
 runtests: $(MONGOOSE_TEST_SERVER).start $(RESS)
+	$(MAKE) $(MONGOOSE_TEST_SERVER).stop
 
 %.stop:
 	@echo Stopping all running $* instances
@@ -18,6 +19,7 @@ runtests: $(MONGOOSE_TEST_SERVER).start $(RESS)
 	@$(SLEEP) 1
 
 Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.m)
+	@echo Call test clean to ensure testing of changed code
 	$(MAKE) tests.clean
 	$(MMC) -f $^
 
