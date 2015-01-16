@@ -29,6 +29,7 @@
 :- import_module mercury_mongoose.path_util.
 
 :- import_module bool.
+:- import_module int.
 :- import_module list.
 :- import_module maybe.
 :- import_module string.
@@ -42,10 +43,9 @@ echo_prop(Connection, Event, !IO) = HandlerResult :-
     ( if Event = auth then
         HandlerResult = true
     else if Event = request then
-        RequestPath = Connection ^ request_path,
-        PathElements = split_and_decode_path(RequestPath),
+        RequestPath   = Connection ^ request_path,
         ( if
-            PathElements = ["", "internal", File | _]
+            match_prefix_and_suffix(RequestPath, "/internal/", File)
         then
             ( if File = ""; File = "index.html" then
                 send_file(Connection, "internal/index.html", !IO),
@@ -69,7 +69,7 @@ echo_prop(Connection, Event, !IO) = HandlerResult :-
             get_status(Connection, StatusCode, !IO),
             printf_data(Connection,
                 "{ \"%s\": \"%s\", \"Status\": %d }",
-                [s(to_encoded_string(RequestPath)), s(Value), i(StatusCode)],
+                [s(RequestPath), s(Value), i(StatusCode)],
                 _Bytes,
                 !IO)
         else

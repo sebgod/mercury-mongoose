@@ -14,25 +14,28 @@
 
 :- interface.
 
-:- import_module list.
 :- import_module string.
 
 %----------------------------------------------------------------------------%
 
 :- type encoded_uri.
 
-:- func decode_uri(encoded_uri) = string.
+:- type decoded_uri == string.
 
-%----------------------------------------------------------------------------%
+:- pred decode_uri(encoded_uri, decoded_uri).
+:- mode decode_uri(in, out) is det.
 
-:- type uri_encoded_path.
+:- type encoded_uri_path.
 
-    % split_path(Path) = Components:
-    % NOTE: Leading slash will yield an empty string.
-    %
-:- func split_and_decode_path(uri_encoded_path) = list(string).
+:- type decoded_uri_path == string.
 
-:- func to_encoded_string(uri_encoded_path) = string.
+:- pred decode_uri_path(encoded_uri_path, decoded_uri_path).
+:- mode decode_uri_path(in, out) is det.
+
+:- pred match_prefix(decoded_uri_path::in, string::in, int::out) is semidet.
+
+:- pred match_prefix_and_suffix(decoded_uri_path, string, string).
+:- mode match_prefix_and_suffix(in, in, out) is semidet.
 
 %----------------------------------------------------------------------------%
 %----------------------------------------------------------------------------%
@@ -40,23 +43,28 @@
 :- implementation.
 
 :- import_module require.
+:- import_module std_util.
 
 %----------------------------------------------------------------------------%
 
 :- type encoded_uri == string.
 
-:- type uri_encoded_path == string.
+:- type encoded_uri_path == string.
 
 %----------------------------------------------------------------------------%
+%
+% Decode and encode functions for URIs
+% TODO: Optimise for C to avoid excessive memory allocations
 
-    % TODO: Optimise for C to avoid excessive memory allocations
-split_and_decode_path(Path) = map(decode_uri, split_at_char('/', Path)).
+decode_uri_path(EncodedPath, DecodedPath) :-
+    % XXX: This is based on the implementation detail that mg_url_decode also
+    % can decode stand-alone pathes.
+    decode_uri(EncodedPath, DecodedPath).
 
-%----------------------------------------------------------------------------%
+decode_uri(_, _) :-
+    sorry($file, $pred, $grade ++ " is not supported").
 
-decode_uri(_) = sorry($file, $pred, $grade ++ " does not support " ++ $pred).
-
-:- pragma foreign_proc("C", decode_uri(EncodedUri::in) = (DecodedUri::out),
+:- pragma foreign_proc("C", decode_uri(EncodedUri::in, DecodedUri::out),
     [promise_pure, thread_safe, will_not_call_mercury],
 "
     int n = (int) strlen(EncodedUri);
@@ -67,7 +75,31 @@ decode_uri(_) = sorry($file, $pred, $grade ++ " does not support " ++ $pred).
 
 %----------------------------------------------------------------------------%
 
-to_encoded_string(Uri) = Uri.
+match_prefix(_, _, _) :-
+    sorry($file, $pred, $grade ++ " is not supported").
+
+    % XXX: This should be in mongoose.h
+:- pragma foreign_decl("C",
+"
+    int mg_match_prefix(
+        const char *pattern,
+        int pattern_len,
+        const char *str);
+").
+
+:- pragma foreign_proc("C",
+    match_prefix(DecodedUri::in, PrefixPattern::in, MatchPos::out),
+    [promise_pure, thread_safe, will_not_call_mercury],
+"
+    int n = (int) strlen(PrefixPattern);
+    MatchPos = mg_match_prefix(PrefixPattern, n, DecodedUri);
+    SUCCESS_INDICATOR = MatchPos > 0;
+").
+
+match_prefix_and_suffix(DecodedUri, PrefixPattern, Suffix) :-
+    match_prefix(DecodedUri, PrefixPattern, MatchPos),
+    DecodedUriLength = length(DecodedUri),
+    Suffix = right(DecodedUri, DecodedUriLength - MatchPos).
 
 %----------------------------------------------------------------------------%
 :- end_module mercury_mongoose.path_util.

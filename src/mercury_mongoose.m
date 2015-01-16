@@ -23,7 +23,6 @@
 :- interface.
 
 :- include_module mercury_mongoose.path_util.
-
 :- import_module mercury_mongoose.path_util.
 
 :- import_module bool.
@@ -92,6 +91,8 @@
 
 :- type http_status == int.
 
+:- type http_version == string.
+
 %----------------------------------------------------------------------------%
 %
 % Server management predicates.
@@ -130,7 +131,7 @@
 :- func (connection::in) ^ server_handler =
     (handler_func::out(handler_func)) is det.
 
-:- func connection ^ request_path = uri_encoded_path.
+:- func connection ^ request_path = decoded_uri_path.
 
 :- func connection ^ remote_address = socket_address.
 
@@ -144,7 +145,7 @@
 
 :- func connection ^ local_port = port.
 
-:- func connection ^ http_version = string.
+:- func connection ^ http_version = http_version.
 
     % is_websocket(Connection):
     %
