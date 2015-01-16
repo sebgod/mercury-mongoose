@@ -1,6 +1,5 @@
 Mercury
 Mercury.modules
-*.out
 *.res
 *.o
 *.obj
