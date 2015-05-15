@@ -4,6 +4,8 @@ Mercury/
 *.init
 *.dll
 *.exe
+*.lib
+*.obj
 *.a
 *.so
 *.dylib

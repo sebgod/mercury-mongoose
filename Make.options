@@ -1,30 +1,50 @@
-MMC := mmc
-MCFLAGS := -O5 --intermod-opt --use-grade-subdirs
-SLEEP := sleep
-CC  := $(shell $(MMC) --output-cc)
-CC_TYPE := $(shell $(MMC) --output-cc-type)
-HARDLINK := cp -l -u -f
-RM := rm
+# vim: ft=make tw=78 ts=4 sw=4 noet
+
 CURL := curl
 CURL_FLAGS := -s -L
 DIFF := diff
 DIFF_FLAGS := -u
-# composed common variables
-DEL_FILE := $(RM) -f
-DEL_DIR  := $(RM) -fR
+HARDLINK := cp -l -u -f
 
-# TODO: This needs to be determined from $(CC)
-OBJ_EXT := .o
-EXE_EXT :=
-MLLIBS := -lpthread
+MCFLAGS := -O5 --intermod-opt --use-grade-subdirs
+# For Windows, mmc should be set using MMC=, using a Unix compatible path,
+# e.g. c/mercury-dev/bin/mmc
+MMC := mmc
+
+RM := rm
+# GNU sed is required
+SED := sed -r
+SLEEP := sleep
+
+# composed common variables
+CC := $(shell $(MMC) --output-cc)
+# if you change CC on the command line you have to change CC_TYPE as well
+CC_TYPE := $(shell $(MMC) --output-cc-type)
+CC_TYPE_REDUCED := $(shell echo $(CC_TYPE) | $(SED) -n -e "s/([^_]+).*/\1/p")
+
+DEL_DIR  := $(RM) -fR
+DEL_FILE := $(RM) -f
+
 KILLALL := killall
 KILLALL_FORCE := killall -9
 
+# file extensions
+EXE_EXT :=
+ifeq ($(CC_TYPE_REDUCED),msvc)
+    OBJ_EXT := .obj
+else
+    OBJ_EXT := .o
+endif
+
 # Mongoose related variables
+MLLIBS := -lpthread
 MONGOOSE_CFLAGS := -DMONGOOSE_NO_URL_DECODE
 MONGOOSE_OBJ := mongoose$(OBJ_EXT)
 MONGOOSE_TEST_SERVER := test_mercury_mongoose
 MONGOOSE_TEST_PORT := 9999
+ifeq ($(CC_TYPE_REDUCED),msvc)
+    MONGOOSE_CFLAGS += -nologo
+endif
 
 # The expected outputs do not use CRLF line endings,
 # so if we are on Windows we need to account for this.
