@@ -35,7 +35,7 @@ ifdef WINDIR
     DIFF_FLAGS += --strip-trailing-cr
     EXE_EXT := .exe
     KILLALL := taskkill -t -im
-    KILLALL_FORCE := taskkill -F  -im
+    KILLALL_FORCE := taskkill -F -im
 else
     MONGOOSE_CFLAGS += -fPIC # PIC is not needed on Windows
 endif
