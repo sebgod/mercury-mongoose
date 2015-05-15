@@ -3,7 +3,7 @@
 %----------------------------------------------------------------------------%
 % File: path_util.m
 % Copyright © 2014 Sebastian Godelet
-% Main author: Sebastian Godelet <sebastian.godelet+github@gmail.com>
+% Main author: Sebastian Godelet <sebastian.godelet@outlook.com>
 % Created on: Fri Dec 26 22:10:56 CST 2014
 % Stability: low
 %----------------------------------------------------------------------------%
