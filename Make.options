@@ -18,9 +18,14 @@ SLEEP := sleep
 
 # composed common variables
 CC := $(shell $(MMC) --output-cc)
-# if you change CC on the command line you have to change CC_TYPE as well
-CC_TYPE := $(shell $(MMC) --output-cc-type)
-CC_TYPE_REDUCED := $(shell echo $(CC_TYPE) | $(SED) -n -e "s/([^_]+).*/\1/p")
+
+CC_TYPE_FUNC = \
+	case $(1) in \
+		clang*) echo clang;; \
+		cl*)    echo msvc;;  \
+		*)      echo gcc;;   \
+	esac
+CC_TYPE := $(shell $(call CC_TYPE_FUNC,$(CC)))
 
 DEL_DIR  := $(RM) -fR
 DEL_FILE := $(RM) -f
@@ -30,7 +35,7 @@ KILLALL_FORCE := killall -9
 
 # file extensions
 EXE_EXT :=
-ifeq ($(CC_TYPE_REDUCED),msvc)
+ifeq ($(CC_TYPE),msvc)
     OBJ_EXT := .obj
 else
     OBJ_EXT := .o
@@ -42,7 +47,7 @@ MONGOOSE_CFLAGS := -DMONGOOSE_NO_URL_DECODE
 MONGOOSE_OBJ := mongoose$(OBJ_EXT)
 MONGOOSE_TEST_SERVER := test_mercury_mongoose
 MONGOOSE_TEST_PORT := 9999
-ifeq ($(CC_TYPE_REDUCED),msvc)
+ifeq ($(CC_TYPE),msvc)
     MONGOOSE_CFLAGS += -nologo
 endif
 
