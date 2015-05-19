@@ -49,6 +49,8 @@ MONGOOSE_TEST_SERVER := test_mercury_mongoose
 MONGOOSE_TEST_PORT := 9999
 ifeq ($(CC_TYPE),msvc)
     MONGOOSE_CFLAGS += -nologo
+else
+    MONGOOSE_CFLAGS += -Wall -pedantic
 endif
 
 # The expected outputs do not use CRLF line endings,

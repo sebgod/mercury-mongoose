@@ -18,7 +18,7 @@ runtests: $(MONGOOSE_TEST_SERVER).start $(RESS)
 	@echo Wait a second until server is operational
 	@$(SLEEP) 1
 
-Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.m)
+Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.[hmc])
 	@echo Call test clean to ensure testing of changed code
 	$(MAKE) tests.clean
 	$(MMC) -f $^
