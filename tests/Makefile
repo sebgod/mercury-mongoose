@@ -21,7 +21,7 @@ runtests: $(MONGOOSE_TEST_SERVER).start $(RESS)
 Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.[hmc])
 	@echo Call test clean to ensure testing of changed code
 	$(MAKE) tests.clean
-	$(MMC) -f $^
+	$(MMC) -f $(filter %.m,$^)
 
 %.build: %.stop Mercury.modules $(MONGOOSE_OBJ)
 	$(MMC) $(MCFLAGS) --make $* --link-object $(MONGOOSE_OBJ) $(MLLIBS)
