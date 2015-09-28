@@ -54,14 +54,11 @@
 :- type (event)
     --->    poll
     ;       connect
-    ;       auth
     ;       request
     ;       reply
     ;       recv
     ;       close
-    ;       ws_handshake
-    ;       ws_connect
-    ;       http_error.
+    .
 
 :- type websocket_opcode
     --->    continuation
@@ -219,23 +216,31 @@
 
 :- pragma foreign_enum("C", (event)/0,
     [
-        poll    - "MG_POLL",
-        connect - "MG_CONNECT",
-        auth    - "MG_AUTH",
-        request - "MG_REQUEST",
-        reply   - "MG_REPLY",
-        recv    - "MG_RECV",
-        close   - "MG_CLOSE",
-        ws_handshake - "MG_WS_HANDSHAKE",
-        ws_connect   - "MG_WS_CONNECT",
-        http_error   - "MG_HTTP_ERROR"
+        poll    - "MG_EV_POLL",
+        connect - "MG_EV_CONNECT",
+        request - "MG_EV_HTTP_REQUEST",
+        reply   - "MG_EV_HTTP_REPLY",
+        recv    - "MG_EV_RECV",
+        close   - "MG_EV_CLOSE"
     ]).
 
 :- pragma foreign_proc("C",
-    create(Server::uo, Handler::in(handler_func), _IO0::di, _IO::uo),
     [promise_pure, may_call_mercury],
 "
-    Server = mg_create_server((void*)Handler, (mg_handler_t)mercury_handler);
+    
+").
+
+:- pragma foreign_proc("C",
+    bind(Manager::in, Connection::uo, Handler::in(handler_func),
+         _IO0::di, _IO::uo),
+    [promise_pure, may_call_mercury],
+"
+    struct mg_bind_opts opts = {
+        (void*)Handler,
+        0,
+        NULL
+    };
+    Connection = mg_bind_opt((void*)Handler, (mg_handler_t)mercury_handler);
 ").
 
 :- pragma foreign_proc("C",
