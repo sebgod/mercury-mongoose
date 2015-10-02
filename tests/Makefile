@@ -26,7 +26,7 @@ Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.[hmc])
 %.build: %.stop Mercury.modules $(MONGOOSE_OBJ)
 	$(MMC) $(MCFLAGS) --make $* --link-object $(MONGOOSE_OBJ) $(MLLIBS)
 
-$(MONGOOSE_OBJ):
+$(MONGOOSE_OBJ): $(wildcard ../src/*.hc) ../Make.options
 	cd ../src && $(MAKE) $@
 	$(HARDLINK) ../src/$@ $@
 

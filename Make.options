@@ -43,7 +43,7 @@ endif
 
 # Mongoose related variables
 MLLIBS := -lpthread
-MONGOOSE_CFLAGS := -DMONGOOSE_NO_URL_DECODE
+MONGOOSE_CFLAGS := -DMONGOOSE_ENABLE_THREADS
 MONGOOSE_OBJ := mongoose$(OBJ_EXT)
 MONGOOSE_TEST_SERVER := test_mercury_mongoose
 MONGOOSE_TEST_PORT := 9999
