@@ -38,24 +38,24 @@
 
 :- pred echo_prop : event_handler_pred `with_inst` event_handler_pred.
 
-echo_prop(_Connection, event_data(http_request, http_msg(Msg)), !IO) :-
+echo_prop(_Connection, http_request(Msg), !IO) :-
         print_line("http_request: ", !IO),
         print_line(http_msg_to_string(Msg), !IO).
 
-echo_prop(_Connection, event_data(http_reply, http_msg(Msg)), !IO).
-echo_prop(_Connection, event_data(http_chunk, http_msg(Msg)), !IO).
+echo_prop(_Connection, http_reply(Msg), !IO).
+echo_prop(_Connection, http_chunk(Msg), !IO).
 
-echo_prop(_Connection, event_data(connect, _), !IO).
-echo_prop(_Connection, event_data(poll, _), !IO).
-echo_prop(_Connection, event_data(recv, _), !IO).
-echo_prop(_Connection, event_data(close, _), !IO).
+echo_prop(_Connection, connect, !IO).
+echo_prop(_Connection, poll, !IO).
+echo_prop(_Connection, recv, !IO).
+echo_prop(_Connection, close, !IO).
 
 main(!IO) :-
     get_environment_var("MONGOOSE_TEST_ADDRESS", MaybeAddress, !IO),
     Address = ( if MaybeAddress = yes(Address0) then Address0 else "8080" ),
     manager_init(Manager, !IO),
     bind(Manager, Address, echo_prop, Server, !IO),
-    enable_protocol(Server, http_websocket, !IO),
+    set_protocol(Server, http_websocket, !IO),
     install_signal_handlers(!IO),
     poll(Manager, yes, 1000, !IO),
     manager_free(Manager, !IO).

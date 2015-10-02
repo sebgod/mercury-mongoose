@@ -47,27 +47,27 @@
     ;       close
     .
 
-:- type data
-    --->    empty
-    ;       http_msg(http_msg)
-    .
-
 :- type http_msg.
 
 :- type event_data
-    --->    event_data(event, data).
+    --->    poll
+    ;       connect
+    ;       http_request(http_msg)
+    ;       http_reply(http_msg)
+    ;       http_chunk(http_msg)
+    ;       recv
+    ;       close
+    .
 
 :- inst event_data ==
-    unique(event_data(
-        bound( close
-             ; connect
-             ; http_chunk
-             ; http_reply
-             ; http_request
-             ; poll
-             ; recv
-             ),
-        bound(empty ; http_msg(ground)))).
+    unique( close
+          ; connect
+          ; http_chunk(ground)
+          ; http_reply(ground)
+          ; http_request(ground)
+          ; poll
+          ; recv
+          ).
 
 :- type websocket_opcode
     --->    continuation
@@ -117,9 +117,9 @@
     %
 :- pred poll(manager::in, bool::in, int::in, io::di, io::uo) is det.
 
-    % enable_protocol(Connection, Protocol):
+    % set_protocol(Connection, Protocol):
     %
-:- pred enable_protocol(connection::in, protocol::in, io::di, io::uo)
+:- pred set_protocol(connection::in, protocol::in, io::di, io::uo)
     is det.
 
     % http_msg_to_string(HttpMsg) = String.
@@ -256,7 +256,7 @@ static void MMG_signal_handler(int sig_num)
     [prefix("MG_PROTO_"), uppercase]).
 
 :- pragma foreign_proc("C",
-    enable_protocol(Connection::in, Protocol::in, _IO0::di, _IO::uo),
+    set_protocol(Connection::in, Protocol::in, _IO0::di, _IO::uo),
     [promise_pure, may_call_mercury],
 "
     switch (Protocol) {
@@ -293,19 +293,20 @@ static void MMG_signal_handler(int sig_num)
     "MMG_event_handler").
 
 event_handler_wrapper(Connection, Event, DataPtr, !IO) :-
-    (
-        ( Event = http_request
-        ; Event = http_reply
-        ; Event = http_chunk
-        ),
-        Data = event_data(Event, http_msg(data_ptr_to_any(DataPtr)))
-    ;
-        ( Event = connect
-        ; Event = poll
-        ; Event = close
-        ; Event = recv
-        ),
-        Data = event_data(Event, empty)
+    ( Event = http_request,
+        Data = http_request(data_ptr_to_any(DataPtr))
+    ; Event = http_reply,
+        Data = http_reply(data_ptr_to_any(DataPtr))
+    ; Event = http_chunk,
+        Data = http_chunk(data_ptr_to_any(DataPtr))
+    ; Event = connect,
+        Data = connect
+    ; Event = poll,
+        Data = poll
+    ; Event = close,
+        Data = close
+    ; Event = recv,
+        Data = recv
     ),
     (Connection ^ event_handler)(Connection, Data, !IO).
 
