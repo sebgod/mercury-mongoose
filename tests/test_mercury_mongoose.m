@@ -26,7 +26,9 @@
 :- implementation.
 
 :- import_module mercury_mongoose.
+:- import_module mercury_mongoose.http.
 :- import_module mercury_mongoose.path_util.
+:- import_module mercury_mongoose.signal.
 
 :- import_module bool.
 :- import_module int.
@@ -42,8 +44,8 @@ echo_prop(_Connection, http_request(Msg), !IO) :-
         print_line("http_request: ", !IO),
         print_line(http_msg_to_string(Msg), !IO).
 
-echo_prop(_Connection, http_reply(Msg), !IO).
-echo_prop(_Connection, http_chunk(Msg), !IO).
+echo_prop(_Connection, http_reply(_Msg), !IO).
+echo_prop(_Connection, http_chunk(_Msg), !IO).
 
 echo_prop(_Connection, connect, !IO).
 echo_prop(_Connection, poll, !IO).

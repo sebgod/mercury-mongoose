@@ -22,7 +22,9 @@
 
 :- interface.
 
+:- include_module mercury_mongoose.http.
 :- include_module mercury_mongoose.path_util.
+:- include_module mercury_mongoose.signal.
 
 :- import_module bool.
 :- import_module io.
@@ -69,20 +71,9 @@
           ; recv
           ).
 
-:- type websocket_opcode
-    --->    continuation
-    ;       text
-    ;       binary
-    ;       connection_close
-    ;       ping
-    ;       pong.
-
-:- type http_status == int.
-
-:- type http_version == string.
-
 :- type protocol
     --->    http_websocket
+    ;       dns
     .
 
 %----------------------------------------------------------------------------%
@@ -97,13 +88,6 @@
     % manager_free(Manager, !IO):
     %
 :- pred manager_free(manager::in, io::di, io::uo) is det.
-
-    % install_signal_handlers(!IO):
-    %
-    % Installs SIGINT and SIGTERM signal handlers to gracefully exit the
-    % polling loop.
-    %
-:- pred install_signal_handlers(io::di, io::uo) is det.
 
     % bind(Manager, Address, Handler, Connection, !IO):
     %
@@ -121,10 +105,6 @@
     %
 :- pred set_protocol(connection::in, protocol::in, io::di, io::uo)
     is det.
-
-    % http_msg_to_string(HttpMsg) = String.
-    %
-:- func http_msg_to_string(http_msg) = string.
 
 %----------------------------------------------------------------------------%
 %
@@ -197,31 +177,6 @@
 :- mutable(signal_val, int, 0, ground,
     [untrailed, attach_to_io_state, foreign_name("C", "MMG_signal_val")]).
 
-:- pragma foreign_decl("C",
-"
-#include <mercury_signal.h>
-
-static void
-MMG_signal_handler(int signum);
-").
-
-:- pragma foreign_proc("C", install_signal_handlers(_IO0::di, _IO::uo),
-    [will_not_call_mercury, promise_pure, thread_safe, may_not_duplicate],
-"
-    signal(SIGINT, MMG_signal_handler);
-    signal(SIGTERM, MMG_signal_handler);
-"
-).
-
-:- pragma foreign_code("C",
-"
-static void MMG_signal_handler(int sig_num)
-{
-    signal(sig_num, MMG_signal_handler);
-    MMG_signal_val = sig_num;
-}
-").
-
 :- pragma foreign_proc("C",
     bind(Manager::in, Address::in, Handler::in(event_handler_pred),
          Connection::uo, _IO0::di, _IO::uo),
@@ -263,6 +218,10 @@ static void MMG_signal_handler(int sig_num)
         case MG_PROTO_HTTP_WEBSOCKET:
             mg_set_protocol_http_websocket(Connection);
             break;
+
+        case MG_PROTO_DNS:
+            mg_set_protocol_dns(Connection);
+            break;
     }
 ").
 
@@ -271,13 +230,6 @@ static void MMG_signal_handler(int sig_num)
 :- pragma foreign_decl("C",
 "
 #define MMG_buf_to_string(buf) MMG_left((MR_String)((buf).p), (buf).len)
-").
-
-:- pragma foreign_proc("C",
-    http_msg_to_string(HttpMsg::in) = (String::out),
-    [promise_pure, will_not_call_mercury],
-"
-    String = MMG_buf_to_string(HttpMsg->message);
 ").
 
 %----------------------------------------------------------------------------%
