@@ -2,7 +2,7 @@
 % vim: ft=mercury ff=unix ts=4 sw=4 et
 %----------------------------------------------------------------------------%
 % File: path_util.m
-% Copyright © 2014 Sebastian Godelet
+% Copyright © 2014-2015 Sebastian Godelet
 % Main author: Sebastian Godelet <sebastian.godelet@outlook.com>
 % Created on: Fri Dec 26 22:10:56 CST 2014
 % Stability: low
@@ -57,12 +57,19 @@
 % TODO: Optimise for C to avoid excessive memory allocations
 
 decode_uri_path(EncodedPath, DecodedPath) :-
-    % XXX: This is based on the implementation detail that mg_url_decode also
+    % WARN: This is based on the implementation detail that mg_url_decode also
     % can decode stand-alone pathes.
     decode_uri(EncodedPath, DecodedPath).
 
 decode_uri(_, _) :-
     sorry($file, $pred, $grade ++ " is not supported").
+
+    % NOTE: This is a private mongoose API
+:- pragma foreign_decl("C",
+"
+    int mg_url_decode(const char *src, int src_len, char *dst,
+                      int dst_len, int is_form_url_encoded);
+").
 
 :- pragma foreign_proc("C", decode_uri(EncodedUri::in, DecodedUri::out),
     [promise_pure, thread_safe, will_not_call_mercury],
@@ -77,15 +84,6 @@ decode_uri(_, _) :-
 
 match_prefix(_, _, _) :-
     sorry($file, $pred, $grade ++ " is not supported").
-
-    % XXX: This should be in mongoose.h
-:- pragma foreign_decl("C",
-"
-    int mg_match_prefix(
-        const char *pattern,
-        int pattern_len,
-        const char *str);
-").
 
 :- pragma foreign_proc("C",
     match_prefix(DecodedUri::in, PrefixPattern::in, MatchPos::out),

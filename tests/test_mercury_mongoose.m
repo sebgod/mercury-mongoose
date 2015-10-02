@@ -36,65 +36,29 @@
 
 %----------------------------------------------------------------------------%
 
-:- func echo_prop `with_type` handler_func `with_inst` handler_func.
+:- pred echo_prop : event_handler_pred `with_inst` event_handler_pred.
 
-    % TODO: Use maybe_error/1 for return value
-echo_prop(Connection, Event, !IO) = HandlerResult :-
-    ( if Event = auth then
-        HandlerResult = true
-    else if Event = request then
-        RequestPath   = Connection ^ request_path,
-        ( if
-            match_prefix_and_suffix(RequestPath, "/internal/", File)
-        then
-            ( if File = ""; File = "index.html" then
-                send_file(Connection, "internal/index.html", !IO),
-                Data = {no, more}
-            else if File = "remote_ip" then
-                Data = {yes(Connection ^ remote_ip), true}
-            else if File = "local_ip" then
-                Data = {yes(Connection ^ local_ip), true}
-            else if File = "is_websocket" then
-                Data = {yes(is_websocket(Connection) -> "yes" ; "no"), true}
-            else
-                send_status(Connection, 404, !IO),
-                Data = {no, false}
-            )
-        else
-            Data = {no, false}
-        ),
-        ( if Data = {yes(Value), _} then
-            send_header(Connection, "Content-Type",
-                "application/json; charset=utf-8", !IO),
-            get_status(Connection, StatusCode, !IO),
-            printf_data(Connection,
-                "{ \"%s\": \"%s\", \"Status\": %d }",
-                [s(RequestPath), s(Value), i(StatusCode)],
-                _Bytes,
-                !IO)
-        else
-            true
-        ),
-        Data = {_, HandlerResult}
-    else
-        HandlerResult = false
-    ).
+echo_prop(_Connection, event_data(http_request, http_msg(Msg)), !IO) :-
+        print_line("http_request: ", !IO),
+        print_line(http_msg_to_string(Msg), !IO).
+
+echo_prop(_Connection, event_data(http_reply, http_msg(Msg)), !IO).
+echo_prop(_Connection, event_data(http_chunk, http_msg(Msg)), !IO).
+
+echo_prop(_Connection, event_data(connect, _), !IO).
+echo_prop(_Connection, event_data(poll, _), !IO).
+echo_prop(_Connection, event_data(recv, _), !IO).
+echo_prop(_Connection, event_data(close, _), !IO).
 
 main(!IO) :-
-    get_environment_var("MONGOOSE_TEST_PORT", MaybePort, !IO),
-    Port = ( if
-        MaybePort = yes(PortStr),
-        to_int(PortStr, PortNumber)
-    then
-        port(PortNumber)
-    else
-        port(8080)
-    ),
-    create(Server, echo_prop, !IO),
-    set_option(Server, document_root,  path("."), !IO),
-    set_option(Server, listening_port, Port, !IO),
-    poll(Server, yes, 1000, !IO),
-    destroy(Server, !IO).
+    get_environment_var("MONGOOSE_TEST_ADDRESS", MaybeAddress, !IO),
+    Address = ( if MaybeAddress = yes(Address0) then Address0 else "8080" ),
+    manager_init(Manager, !IO),
+    bind(Manager, Address, echo_prop, Server, !IO),
+    enable_protocol(Server, http_websocket, !IO),
+    install_signal_handlers(!IO),
+    poll(Manager, yes, 1000, !IO),
+    manager_free(Manager, !IO).
 
 %----------------------------------------------------------------------------%
 :- end_module test_mercury_mongoose.

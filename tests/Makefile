@@ -14,7 +14,7 @@ runtests: $(MONGOOSE_TEST_SERVER).start $(RESS)
 
 %.start: %.build
 	@echo Starting $* as a deamon
-	MONGOOSE_TEST_PORT=$(MONGOOSE_TEST_PORT) ./$* &
+	MONGOOSE_TEST_ADDRESS=$(MONGOOSE_TEST_ADDRESS) ./$* &
 	@echo Wait a second until server is operational
 	@$(SLEEP) 1
 
@@ -26,13 +26,13 @@ Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.[hmc])
 %.build: %.stop Mercury.modules $(MONGOOSE_OBJ)
 	$(MMC) $(MCFLAGS) --make $* --link-object $(MONGOOSE_OBJ) $(MLLIBS)
 
-$(MONGOOSE_OBJ):
+$(MONGOOSE_OBJ): $(wildcard ../src/*.[hc]) ../Make.options
 	cd ../src && $(MAKE) $@
 	$(HARDLINK) ../src/$@ $@
 
 %.res: %.exp
 	@echo testing $*
-	$(CURL) $(CURL_FLAGS) http://127.0.0.1:$(MONGOOSE_TEST_PORT)/$* | \
+	$(CURL) $(CURL_FLAGS) http://$(MONGOOSE_TEST_ADDRESS)/$* | \
 		$(DIFF) $(DIFF_FLAGS) $< - >$*.res
 
 .PHONY: tests.clean
