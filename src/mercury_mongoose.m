@@ -72,8 +72,10 @@
           ).
 
 :- type protocol
-    --->    http_websocket
+    --->    none
+    ;       http_websocket
     ;       dns
+    ;       mqtt
     .
 
 %----------------------------------------------------------------------------%
@@ -101,18 +103,17 @@
     %
 :- pred poll(manager::in, bool::in, int::in, io::di, io::uo) is det.
 
-    % set_protocol(Connection, Protocol):
-    %
-:- pred set_protocol(connection::in, protocol::in, io::di, io::uo)
-    is det.
-
 %----------------------------------------------------------------------------%
 %
 % Connection properties and I/O.
 %
 
-:- func (connection::in) ^ event_handler =
-    (event_handler_pred::out(event_handler_pred)) is det.
+    % set_protocol(Connection, Protocol):
+    %
+:- pred set_protocol(connection::in, protocol::in, io::di, io::uo)
+    is det.
+
+:- func connection ^ connection_protocol = protocol.
 
 %----------------------------------------------------------------------------%
 
@@ -133,7 +134,6 @@
 
 :- import_module int. % for int_to_string/1, det_to_int/1
 :- import_module string.
-:- import_module unit.
 
 %----------------------------------------------------------------------------%
 %
@@ -144,7 +144,6 @@
     % to the library does not require the presence of the API header
     %
 :- pragma foreign_decl("C", include_file("mongoose.h")).
-
 
 :- pragma foreign_type("C", manager,
     "struct mg_mgr *", [can_pass_as_mercury_type]).
@@ -157,13 +156,50 @@
 
 :- pragma foreign_enum("C", (event)/0,
     [
-        poll         - "MG_EV_POLL",
-        connect      - "MG_EV_CONNECT",
-        http_request - "MG_EV_HTTP_REQUEST",
-        http_reply   - "MG_EV_HTTP_REPLY",
-        http_chunk   - "MG_EV_HTTP_CHUNK",
-        recv         - "MG_EV_RECV",
-        close        - "MG_EV_CLOSE"
+        coap_ack        - "MG_EV_COAP_ACK",
+        coap_con        - "MG_EV_COAP_CON",
+        coap_noc        - "MG_EV_COAP_NOC",
+        coap_rst        - "MG_EV_COAP_RST",
+
+        mqqt_connack    - "MG_EV_MQTT_CONNACK",
+        mqtt_connack_accepted - "MG_EV_MQTT_CONNACK_ACCEPTED",
+        mqtt_connack_bad_auth - "MG_EV_MQTT_CONNACK_BAD_AUTH",
+        mqtt_connack_identifier_rejected -
+            "MG_EV_MQTT_CONNACK_IDENTIFIER_REJECTED",
+        mqtt_connack_not_authorized -
+            "MG_EV_MQTT_CONNACK_NOT_AUTHORIZED",
+        mqtt_connack_server_unavailable -
+            "MG_EV_MQTT_CONNACK_SERVER_UNAVAILABLE",
+        mqtt_connack_unacceptable_version -
+            "MG_EV_MQTT_CONNACK_UNACCEPTABLE_VERSION",
+        mqtt_connect     - "MG_EV_MQTT_CONNECT",
+        mqtt_disconnect  - "MG_EV_MQTT_DISCONNECT",
+        mqtt_pingeq      - "MG_EV_MQTT_PINGREQ",
+        mqtt_pingresp    - "MG_EV_MQTT_PINGRESP",
+        mqtt_puback      - "MG_EV_MQTT_PUBACK",
+        mqtt_pubcomp     - "MG_EV_MQTT_PUBCOMP",
+        mqtt_publish     - "MG_EV_MQTT_PUBLISH",
+        mqtt_pubrec      - "MG_EV_MQTT_PUBREC",
+        mqtt_pubrel      - "MG_EV_MQTT_PUBREL",
+        mqtt_suback      - "MG_EV_MQTT_SUBACK",
+        mqtt_subscribe   - "MG_EV_MQTT_SUBSCRIBE",
+        mqtt_unsuback    - "MG_EV_MQTT_UNSUBACK",
+        mqtt_unsubscribe - "MG_EV_MQTT_UNSUBSCRIBE",
+
+        connect         - "MG_EV_CONNECT",
+        close           - "MG_EV_CLOSE",
+        poll            - "MG_EV_POLL",
+        recv            - "MG_EV_RECV",
+        send            - "MG_EV_SEND",
+
+        http_chunk      - "MG_EV_HTTP_CHUNK",
+        http_reply      - "MG_EV_HTTP_REPLY",
+        http_request    - "MG_EV_HTTP_REQUEST",
+        http_ssi_call   - "MG_EV_SSI_CALL",
+        websocket_control_frame     - "MG_EV_WEBSOCKET_CONTROL_FRAME",
+        websocket_frame             - "MG_EV_WEBSOCKET_FRAME",
+        websocket_handshake_done    - "MG_EV_WEBSOCKET_HANDSHAKE_DONE",
+        websocket_handshake_request - "MG_EV_WEBSOCKET_HANDSHAKE_REQUEST"
     ]).
 
 :- pragma foreign_proc("C",
@@ -182,11 +218,17 @@
          Connection::uo, _IO0::di, _IO::uo),
     [promise_pure, may_call_mercury],
 "
+    struct MMG_connection_handler_data * handler_data =
+        MR_GC_NEW(struct MMG_connection_handler_data);
     struct mg_bind_opts opts = {
-        (void*)Handler,
+        handler_data,
         0,
         NULL
     };
+
+    handler_data->proto = MG_PROTO_NONE;
+    handler_data->mercury_callback = Handler;
+
     Connection = mg_bind_opt(Manager, Address,
         (mg_event_handler_t)MMG_event_handler, opts);
 ").
@@ -223,6 +265,9 @@
             mg_set_protocol_dns(Connection);
             break;
     }
+
+    MMG_user_to_handler_data(Connection)->proto =
+        Connection->proto_handler ? Protocol : MG_PROTO_NONE;
 ").
 
 :- pragma foreign_export("C", left(in, in) = (out), "MMG_left").
@@ -235,7 +280,6 @@
 %----------------------------------------------------------------------------%
 %
 % Enable the server to call the event handler written in Mercury.
-% XXX: Not sure if this is legal Mercury.
 %
 
 :- pred event_handler_wrapper(connection::in, (event)::in, c_pointer::in,
@@ -245,22 +289,27 @@
     "MMG_event_handler").
 
 event_handler_wrapper(Connection, Event, DataPtr, !IO) :-
-    ( Event = http_request,
-        Data = http_request(data_ptr_to_any(DataPtr))
-    ; Event = http_reply,
-        Data = http_reply(data_ptr_to_any(DataPtr))
-    ; Event = http_chunk,
-        Data = http_chunk(data_ptr_to_any(DataPtr))
-    ; Event = connect,
-        Data = connect
-    ; Event = poll,
-        Data = poll
-    ; Event = close,
-        Data = close
-    ; Event = recv,
-        Data = recv
-    ),
-    (Connection ^ event_handler)(Connection, Data, !IO).
+    unpack_handler_data(Connection, EventHandler, Protocol),
+    ( if should_handle_event(Event, Protocol) then
+        ( Event = http_request,
+            Data = http_request(data_ptr_to_any(DataPtr))
+        ; Event = http_reply,
+            Data = http_reply(data_ptr_to_any(DataPtr))
+        ; Event = http_chunk,
+            Data = http_chunk(data_ptr_to_any(DataPtr))
+        ; Event = connect,
+            Data = connect
+        ; Event = poll,
+            Data = poll
+        ; Event = close,
+            Data = close
+        ; Event = recv,
+            Data = recv
+        ),
+        EventHandler(Connection, Data, !IO)
+    else
+        true
+    ).
 
 :- func data_ptr_to_any(c_pointer) = T.
 
@@ -270,17 +319,57 @@ event_handler_wrapper(Connection, Event, DataPtr, !IO) :-
     Value = DataPtr;
 ").
 
+:- pred should_handle_event(event, protocol).
+:- mode should_handle_event(in, in) is semidet.
+
+should_handle_event(http_request, http_websocket).
+should_handle_event(http_reply,   http_websocket).
+should_handle_event(http_chunk,   http_websocket).
+should_handle_event(connect, _).
+should_handle_event(poll,    _).
+should_handle_event(close,   _).
+should_handle_event(recv,    _).
+
 %----------------------------------------------------------------------------%
 %
 % Implementation of connection properties and I/O.
 %
 
-:- pragma foreign_proc("C",
-    event_handler(Connection::in) = (Handler::out(event_handler_pred)),
-    [promise_pure, will_not_call_mercury],
+:- type connection_handler_data.
+
+:- pragma foreign_decl("C",
 "
-    Handler = (MR_Word)(Connection->user_data);
+struct MMG_connection_handler_data
+{
+    MR_Word mercury_callback;
+    MR_Integer proto;
+};
+
+#define MMG_user_to_handler_data(Connection) \
+    ((struct MMG_connection_handler_data *)(Connection->user_data))
 ").
+
+:- pragma foreign_type("C", connection_handler_data,
+    "struct MMG_connection_handler_data *",
+    [can_pass_as_mercury_type]).
+
+:- pred unpack_handler_data(connection::in,
+    event_handler_pred::out(event_handler_pred), protocol::out) is det.
+
+:- pragma foreign_proc("C",
+    unpack_handler_data(Connection::in, Handler::out(event_handler_pred),
+        Protocol::out),
+    [promise_pure],
+"
+    struct MMG_connection_handler_data * handler_data =
+        MMG_user_to_handler_data(Connection);
+
+    Handler = handler_data->mercury_callback;
+    Protocol = handler_data->proto;
+").
+
+connection_protocol(Connection) = Protocol :-
+    unpack_handler_data(Connection, _, Protocol).
 
 %----------------------------------------------------------------------------%
 
