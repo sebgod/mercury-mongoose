@@ -40,36 +40,139 @@
 :- inst event_handler_pred == (pred(in, in(event_data), di, uo) is det).
 
 :- type (event)
-    --->    poll
+    % COAP events
+    --->    coap_ack
+    ;       coap_con
+    ;       coap_noc
+    ;       coap_rst
+    % MQTT events
+    ;       mqtt_connack
+    ;       mqtt_connack_accepted
+    ;       mqtt_connack_bad_auth
+    ;       mqtt_connack_identifier_rejected
+    ;       mqtt_connack_not_authorized
+    ;       mqtt_connack_server_unavailable
+    ;       mqtt_connack_unacceptable_version
+    ;       mqtt_connect
+    ;       mqtt_disconnect
+    ;       mqtt_pingeq
+    ;       mqtt_pingresp
+    ;       mqtt_puback
+    ;       mqtt_pubcomp
+    ;       mqtt_publish
+    ;       mqtt_pubrec
+    ;       mqtt_pubrel
+    ;       mqtt_suback
+    ;       mqtt_subscribe
+    ;       mqtt_unsuback
+    ;       mqtt_unsubscribe
+    % general connection events
     ;       connect
-    ;       http_request
-    ;       http_reply
-    ;       http_chunk
-    ;       recv
     ;       close
+    ;       poll
+    ;       recv
+    ;       send
+    % HTTP and websocket events
+    ;       http_chunk
+    ;       http_reply
+    ;       http_request
+    ;       ssi_call
+    ;       websocket_control_frame
+    ;       websocket_frame
+    ;       websocket_handshake_done
+    ;       websocket_handshake_request
     .
 
 :- type http_msg.
 
 :- type event_data
-    --->    poll
+    % COAP events
+    --->    coap_ack
+    ;       coap_con
+    ;       coap_noc
+    ;       coap_rst
+    % MQTT events
+    ;       mqtt_connack
+    ;       mqtt_connack_accepted
+    ;       mqtt_connack_bad_auth
+    ;       mqtt_connack_identifier_rejected
+    ;       mqtt_connack_not_authorized
+    ;       mqtt_connack_server_unavailable
+    ;       mqtt_connack_unacceptable_version
+    ;       mqtt_connect
+    ;       mqtt_disconnect
+    ;       mqtt_pingeq
+    ;       mqtt_pingresp
+    ;       mqtt_puback
+    ;       mqtt_pubcomp
+    ;       mqtt_publish
+    ;       mqtt_pubrec
+    ;       mqtt_pubrel
+    ;       mqtt_suback
+    ;       mqtt_subscribe
+    ;       mqtt_unsuback
+    ;       mqtt_unsubscribe
+    % general connection events
     ;       connect
-    ;       http_request(http_msg)
-    ;       http_reply(http_msg)
-    ;       http_chunk(http_msg)
-    ;       recv
     ;       close
+    ;       poll
+    ;       recv
+    ;       send
+    % HTTP and websocket events
+    ;       http_chunk(http_msg)
+    ;       http_reply(http_msg)
+    ;       http_request(http_msg)
+    ;       ssi_call(string)
+    ;       websocket_control_frame
+    ;       websocket_frame
+    ;       websocket_handshake_done
+    ;       websocket_handshake_request
     .
 
 :- inst event_data ==
-    unique( close
-          ; connect
-          ; http_chunk(ground)
-          ; http_reply(ground)
-          ; http_request(ground)
-          ; poll
-          ; recv
-          ).
+    unique(
+    % COAP events
+            coap_ack
+    ;       coap_con
+    ;       coap_noc
+    ;       coap_rst
+    % MQTT events
+    ;       mqtt_connack
+    ;       mqtt_connack_accepted
+    ;       mqtt_connack_bad_auth
+    ;       mqtt_connack_identifier_rejected
+    ;       mqtt_connack_not_authorized
+    ;       mqtt_connack_server_unavailable
+    ;       mqtt_connack_unacceptable_version
+    ;       mqtt_connect
+    ;       mqtt_disconnect
+    ;       mqtt_pingeq
+    ;       mqtt_pingresp
+    ;       mqtt_puback
+    ;       mqtt_pubcomp
+    ;       mqtt_publish
+    ;       mqtt_pubrec
+    ;       mqtt_pubrel
+    ;       mqtt_suback
+    ;       mqtt_subscribe
+    ;       mqtt_unsuback
+    ;       mqtt_unsubscribe
+    % general connection events
+    ;       connect
+    ;       close
+    ;       poll
+    ;       recv
+    ;       send
+    % HTTP and websocket events
+    ;       http_chunk(ground)
+    ;       http_reply(ground)
+    ;       http_request(ground)
+    ;       ssi_call(ground)
+    ;       websocket_control_frame
+    ;       websocket_frame
+    ;       websocket_handshake_done
+    ;       websocket_handshake_request
+    ).
 
 :- type protocol
     --->    none
@@ -161,7 +264,7 @@
         coap_noc        - "MG_EV_COAP_NOC",
         coap_rst        - "MG_EV_COAP_RST",
 
-        mqqt_connack    - "MG_EV_MQTT_CONNACK",
+        mqtt_connack    - "MG_EV_MQTT_CONNACK",
         mqtt_connack_accepted - "MG_EV_MQTT_CONNACK_ACCEPTED",
         mqtt_connack_bad_auth - "MG_EV_MQTT_CONNACK_BAD_AUTH",
         mqtt_connack_identifier_rejected -
@@ -195,7 +298,7 @@
         http_chunk      - "MG_EV_HTTP_CHUNK",
         http_reply      - "MG_EV_HTTP_REPLY",
         http_request    - "MG_EV_HTTP_REQUEST",
-        http_ssi_call   - "MG_EV_SSI_CALL",
+        ssi_call        - "MG_EV_SSI_CALL",
         websocket_control_frame     - "MG_EV_WEBSOCKET_CONTROL_FRAME",
         websocket_frame             - "MG_EV_WEBSOCKET_FRAME",
         websocket_handshake_done    - "MG_EV_WEBSOCKET_HANDSHAKE_DONE",
@@ -290,13 +393,16 @@
 
 event_handler_wrapper(Connection, Event, DataPtr, !IO) :-
     unpack_handler_data(Connection, EventHandler, Protocol),
-    ( if should_handle_event(Event, Protocol) then
+    ( if
+        should_handle_event(Event, Protocol),
         ( Event = http_request,
             Data = http_request(data_ptr_to_any(DataPtr))
         ; Event = http_reply,
             Data = http_reply(data_ptr_to_any(DataPtr))
         ; Event = http_chunk,
             Data = http_chunk(data_ptr_to_any(DataPtr))
+        ; Event = ssi_call,
+            Data = ssi_call(data_ptr_to_any(DataPtr))
         ; Event = connect,
             Data = connect
         ; Event = poll,
@@ -305,7 +411,8 @@ event_handler_wrapper(Connection, Event, DataPtr, !IO) :-
             Data = close
         ; Event = recv,
             Data = recv
-        ),
+        )
+    then
         EventHandler(Connection, Data, !IO)
     else
         true
@@ -325,6 +432,7 @@ event_handler_wrapper(Connection, Event, DataPtr, !IO) :-
 should_handle_event(http_request, http_websocket).
 should_handle_event(http_reply,   http_websocket).
 should_handle_event(http_chunk,   http_websocket).
+should_handle_event(ssi_call,     http_websocket).
 should_handle_event(connect, _).
 should_handle_event(poll,    _).
 should_handle_event(close,   _).
@@ -359,7 +467,7 @@ struct MMG_connection_handler_data
 :- pragma foreign_proc("C",
     unpack_handler_data(Connection::in, Handler::out(event_handler_pred),
         Protocol::out),
-    [promise_pure],
+    [promise_pure, will_not_call_mercury, thread_safe],
 "
     struct MMG_connection_handler_data * handler_data =
         MMG_user_to_handler_data(Connection);
