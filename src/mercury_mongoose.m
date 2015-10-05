@@ -253,7 +253,12 @@
 :- pred send_format(connection::in, string::in, list(poly_type)::in,
     int::out, io::di, io::uo) is det.
 
+    % is_success(ErrorCode):
+    % succeeds if error_code indicates success.
+    %
 :- pred is_success(error_code::in) is semidet.
+
+:- pred enable_multithreading(connection::in, io::di, io::uo) is det.
 
 %----------------------------------------------------------------------------%
 %----------------------------------------------------------------------------%
@@ -513,6 +518,13 @@ struct MMG_connection_handler_data
 
 connection_protocol(Connection) = Protocol :-
     unpack_handler_data(Connection, _, Protocol).
+
+:- pragma foreign_proc("C",
+    enable_multithreading(Connection::in, _IO0::di, _IO::uo),
+    [promise_pure, will_not_call_mercury, thread_safe],
+"
+    mg_enable_multithreading(Connection);
+").
 
 %----------------------------------------------------------------------------%
 

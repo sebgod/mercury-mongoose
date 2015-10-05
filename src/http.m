@@ -39,7 +39,7 @@
 
 :- pragma foreign_proc("C",
     http_msg_to_string(HttpMsg::in) = (String::out),
-    [promise_pure, will_not_call_mercury],
+    [promise_pure, will_not_call_mercury, thread_safe],
 "
     String = MMG_buf_to_string(HttpMsg->message);
 ").

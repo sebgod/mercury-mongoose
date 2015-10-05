@@ -35,6 +35,7 @@
 :- import_module list.
 :- import_module maybe.
 :- import_module string.
+:- import_module thread.
 
 %----------------------------------------------------------------------------%
 

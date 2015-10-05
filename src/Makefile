@@ -6,7 +6,7 @@ default: $(MONGOOSE_OBJ)
 	$(MMC) $(MCFLAGS) --cflags "$(MONGOOSE_OPTS)" --link-object $^ -m
 
 install: $(MONGOOSE_OBJ) default
-	$(MMC) $(MCFLAGS) --no-detect-libgrades -s asm_fast.gc \
+	$(MMC) $(MCFLAGS) --no-verbose-make --no-detect-libgrades -s asm_fast.gc \
 		-m libmercury_mongoose.install --link-object $< \
 		--install-prefix $(INSTALL_PREFIX)
 
