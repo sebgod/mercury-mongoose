@@ -12,6 +12,7 @@
 % means that this library is also licensed under the GPLv2.
 % c.f.: https://github.com/cesanta/mongoose
 %       http://en.wikipedia.org/wiki/Mongoose_(web_server)
+%       https://docs.cesanta.com/mongoose/
 %
 % TODO: check if http://www.microhowto.info/howto/
 %                serve_web_pages_using_an_embedded_http_server_in_java.html
@@ -36,8 +37,10 @@
 
 :- type connection.
 
-:- type event_handler_pred == pred(connection, event_data, io, io).
-:- inst event_handler_pred == (pred(in, in(event_data), di, uo) is det).
+:- type event_handler_pred      == pred(connection, event_data, io, io).
+:- inst event_handler_pred(I)   == (pred(in, in(I), di, uo) is det).
+:- inst event_handler_pred      == event_handler_pred(event_data).
+:- inst http_event_handler_pred == event_handler_pred(http_event_data).
 
 :- type (event)
     % COAP events
@@ -67,6 +70,7 @@
     ;       mqtt_unsuback
     ;       mqtt_unsubscribe
     % general connection events
+    ;       accept
     ;       connect
     ;       close
     ;       poll
@@ -84,6 +88,8 @@
     .
 
 :- type http_msg.
+
+:- type error_code.
 
 :- type event_data
     % COAP events
@@ -113,7 +119,7 @@
     ;       mqtt_unsuback
     ;       mqtt_unsubscribe
     % general connection events
-    ;       connect
+    ;       connect(error_code)
     ;       close
     ;       poll
     ;       recv
@@ -158,7 +164,26 @@
     ;       mqtt_unsuback
     ;       mqtt_unsubscribe
     % general connection events
-    ;       connect
+    ;       connect(ground)
+    ;       close
+    ;       poll
+    ;       recv
+    ;       send
+    % HTTP and websocket events
+    ;       http_chunk(ground)
+    ;       http_reply(ground)
+    ;       http_request(ground)
+    ;       ssi_call(ground)
+    ;       websocket_control_frame
+    ;       websocket_frame
+    ;       websocket_handshake_done
+    ;       websocket_handshake_request
+    ).
+
+:- inst http_event_data ==
+    unique(
+    % general connection events
+            connect(ground)
     ;       close
     ;       poll
     ;       recv
@@ -181,9 +206,11 @@
     ;       mqtt
     .
 
+:- inst http_websocket ---> http_websocket.
+
 %----------------------------------------------------------------------------%
 %
-% Mongoose public interface.
+% Mongoose manager API.
 %
 
     % manager_init(Manager, !IO):
@@ -197,12 +224,10 @@
     % bind(Manager, Address, Handler, Connection, !IO):
     %
 :- pred bind(manager::in, string::in,
-        event_handler_pred::in(event_handler_pred),
+        event_handler_pred::in(event_handler_pred(I)),
         connection::uo, io::di, io::uo) is det.
 
-    % poll(Server, Loop, Milliseconds, !IO):
-    %
-    % TODO: Create loop type to stop on signals, etc.
+    % poll(Manager, Loop, Milliseconds, !IO):
     %
 :- pred poll(manager::in, bool::in, int::in, io::di, io::uo) is det.
 
@@ -218,8 +243,6 @@
 
 :- func connection ^ connection_protocol = protocol.
 
-%----------------------------------------------------------------------------%
-
     % send_string(Connection, String, BytesWritten, !IO):
     %
 :- pred send_string(connection::in, string::in, int::out,
@@ -229,6 +252,8 @@
     %
 :- pred send_format(connection::in, string::in, list(poly_type)::in,
     int::out, io::di, io::uo) is det.
+
+:- pred is_success(error_code::in) is semidet.
 
 %----------------------------------------------------------------------------%
 %----------------------------------------------------------------------------%
@@ -256,6 +281,8 @@
 
 :- pragma foreign_type("C", http_msg,
     "struct http_message *", [can_pass_as_mercury_type]).
+
+:- pragma foreign_type("C", error_code, "int *", [can_pass_as_mercury_type]).
 
 :- pragma foreign_enum("C", (event)/0,
     [
@@ -289,6 +316,7 @@
         mqtt_unsuback    - "MG_EV_MQTT_UNSUBACK",
         mqtt_unsubscribe - "MG_EV_MQTT_UNSUBSCRIBE",
 
+        accept          - "MG_EV_ACCEPT",
         connect         - "MG_EV_CONNECT",
         close           - "MG_EV_CLOSE",
         poll            - "MG_EV_POLL",
@@ -317,7 +345,7 @@
     [untrailed, attach_to_io_state, foreign_name("C", "MMG_signal_val")]).
 
 :- pragma foreign_proc("C",
-    bind(Manager::in, Address::in, Handler::in(event_handler_pred),
+    bind(Manager::in, Address::in, Handler::in(event_handler_pred(I)),
          Connection::uo, _IO0::di, _IO::uo),
     [promise_pure, may_call_mercury],
 "
@@ -385,6 +413,12 @@
 % Enable the server to call the event handler written in Mercury.
 %
 
+:- pragma foreign_proc("C", is_success(ErrorCode::in),
+    [promise_pure, thread_safe, will_not_call_mercury],
+"
+    SUCCESS_INDICATOR = !*(ErrorCode);
+").
+
 :- pred event_handler_wrapper(connection::in, (event)::in, c_pointer::in,
     io::di, io::uo) is det.
 
@@ -404,7 +438,7 @@ event_handler_wrapper(Connection, Event, DataPtr, !IO) :-
         ; Event = ssi_call,
             Data = ssi_call(data_ptr_to_any(DataPtr))
         ; Event = connect,
-            Data = connect
+            Data = connect(data_ptr_to_any(DataPtr))
         ; Event = poll,
             Data = poll
         ; Event = close,
@@ -415,7 +449,7 @@ event_handler_wrapper(Connection, Event, DataPtr, !IO) :-
     then
         EventHandler(Connection, Data, !IO)
     else
-        true
+        true % TODO: Log unservable event
     ).
 
 :- func data_ptr_to_any(c_pointer) = T.
@@ -433,6 +467,7 @@ should_handle_event(http_request, http_websocket).
 should_handle_event(http_reply,   http_websocket).
 should_handle_event(http_chunk,   http_websocket).
 should_handle_event(ssi_call,     http_websocket).
+should_handle_event(accept,  _).
 should_handle_event(connect, _).
 should_handle_event(poll,    _).
 should_handle_event(close,   _).

@@ -38,7 +38,7 @@
 
 %----------------------------------------------------------------------------%
 
-:- pred echo_prop : event_handler_pred `with_inst` event_handler_pred.
+:- pred echo_prop : event_handler_pred `with_inst` http_event_handler_pred.
 
 echo_prop(_Connection, http_request(Msg), !IO) :-
         print_line("http_request: ", !IO),
@@ -46,10 +46,17 @@ echo_prop(_Connection, http_request(Msg), !IO) :-
 
 echo_prop(_Connection, http_reply(_Msg), !IO).
 echo_prop(_Connection, http_chunk(_Msg), !IO).
+echo_prop(_Connection, ssi_call(_Call), !IO).
 
-echo_prop(_Connection, connect, !IO).
+echo_prop(_Connection, websocket_control_frame, !IO).
+echo_prop(_Connection, websocket_frame, !IO).
+echo_prop(_Connection, websocket_handshake_done, !IO).
+echo_prop(_Connection, websocket_handshake_request, !IO).
+
+echo_prop(_Connection, connect(_ErrorCode), !IO).
 echo_prop(_Connection, poll, !IO).
 echo_prop(_Connection, recv, !IO).
+echo_prop(_Connection, send, !IO).
 echo_prop(_Connection, close, !IO).
 
 main(!IO) :-

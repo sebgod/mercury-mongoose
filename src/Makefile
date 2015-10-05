@@ -5,8 +5,13 @@ include ../Make.options
 default: $(MONGOOSE_OBJ)
 	$(MMC) $(MCFLAGS) --cflags "$(MONGOOSE_OPTS)" --link-object $^ -m
 
+install: $(MONGOOSE_OBJ) default
+	$(MMC) $(MCFLAGS) --no-detect-libgrades -s asm_fast.gc \
+		-m libmercury_mongoose.install --link-object $< \
+		--install-prefix $(INSTALL_PREFIX)
+
 $(MONGOOSE_OBJ): mongoose.c mongoose.h ../Make.options
-	$(CC) -c $(MONGOOSE_CFLAGS) $<
+	$(CC) $(MONGOOSE_CFLAGS) -c $<
 
 mongoose.%: mongoose/mongoose.%
 	$(HARDLINK) $^ $@

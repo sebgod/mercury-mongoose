@@ -18,17 +18,12 @@ runtests: $(MONGOOSE_TEST_SERVER).start $(RESS)
 	@echo Wait a second until server is operational
 	@$(SLEEP) 1
 
-Mercury.modules: $(wildcard *.m) $(wildcard ../src/*.[hmc])
-	@echo Call test clean to ensure testing of changed code
-	$(MAKE) tests.clean
-	$(MMC) -f $(filter %.m,$^)
+%.build: %.stop lib
+	$(MMC) $(MCFLAGS) --make $* --mld lib/mercury \
+		--ml mercury_mongoose $(MLLIBS)
 
-%.build: %.stop Mercury.modules $(MONGOOSE_OBJ)
-	$(MMC) $(MCFLAGS) --make $* --link-object $(MONGOOSE_OBJ) $(MLLIBS)
-
-$(MONGOOSE_OBJ): $(wildcard ../src/*.[hc]) ../Make.options
-	cd ../src && $(MAKE) $@
-	$(HARDLINK) ../src/$@ $@
+lib: $(wildcard ../src/*.m) ../Make.options
+	cd ../src && $(MAKE) install INSTALL_PREFIX="$(CURDIR)"
 
 %.res: %.exp
 	@echo testing $*
