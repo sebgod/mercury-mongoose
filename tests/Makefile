@@ -22,7 +22,7 @@ runtests: $(MONGOOSE_TEST_SERVER).start $(RESS)
 	$(MMC) $(MCFLAGS) --make $* --mld lib/mercury \
 		--ml mercury_mongoose $(MLLIBS)
 
-lib: $(wildcard ../src/*.m) ../Make.options
+lib: $(wildcard ../src/*.m) ../Make.options ../src/mongoose
 	cd ../src && $(MAKE) install INSTALL_PREFIX="$(CURDIR)"
 
 %.res: %.exp

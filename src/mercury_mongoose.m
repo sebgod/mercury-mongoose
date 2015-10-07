@@ -340,7 +340,7 @@
 
 :- pragma foreign_proc("C",
     manager_init(Manager::uo, _IO0::di, _IO::uo),
-    [promise_pure, may_call_mercury],
+    [promise_pure, will_not_call_mercury],
 "
     Manager = MR_GC_NEW(struct mg_mgr);
     mg_mgr_init(Manager, NULL);
@@ -352,7 +352,7 @@
 :- pragma foreign_proc("C",
     bind(Manager::in, Address::in, Handler::in(event_handler_pred(I)),
          Connection::uo, _IO0::di, _IO::uo),
-    [promise_pure, may_call_mercury],
+    [promise_pure, may_call_mercury, thread_safe],
 "
     struct MMG_connection_handler_data * handler_data =
         MR_GC_NEW(struct MMG_connection_handler_data);
@@ -371,14 +371,14 @@
 
 :- pragma foreign_proc("C",
     manager_free(Manager::in, _IO0::di, _IO::uo),
-    [promise_pure, may_call_mercury],
+    [promise_pure, may_call_mercury, thread_safe],
 "
     mg_mgr_free(Manager);
 ").
 
 :- pragma foreign_proc("C",
     poll(Server::in, Loop::in, Milliseconds::in, _IO0::di, _IO::uo),
-    [promise_pure, may_call_mercury],
+    [promise_pure, may_call_mercury, thread_safe],
 "
     do {
         mg_mgr_poll(Server, Milliseconds);
