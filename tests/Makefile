@@ -18,11 +18,13 @@ runtests: $(MONGOOSE_TEST_SERVER).start $(RESS)
 	@echo Wait a second until server is operational
 	@$(SLEEP) 1
 
-%.build: %.stop lib
+%.build: %.stop %.library
+	@echo build $*
 	$(MMC) $(MCFLAGS) --make $* --mld lib/mercury \
 		--ml mercury_mongoose $(MLLIBS)
 
-lib: $(wildcard ../src/*.m) ../Make.options ../src/mongoose
+%.library: $(wildcard ../src/*.m) ../Make.options $(wildcard ../src/mongoose/*.[hc])
+	@echo make mercury-mongoose library
 	cd ../src && $(MAKE) install INSTALL_PREFIX="$(CURDIR)"
 
 %.res: %.exp

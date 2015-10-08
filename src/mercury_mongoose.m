@@ -135,10 +135,9 @@
     ;       websocket_handshake_request
     .
 
-:- inst event_data ==
-    unique(
+:- inst event_data
     % COAP events
-            coap_ack
+    --->    coap_ack
     ;       coap_con
     ;       coap_noc
     ;       coap_rst
@@ -178,7 +177,7 @@
     ;       websocket_frame
     ;       websocket_handshake_done
     ;       websocket_handshake_request
-    ).
+    .
 
 :- inst http_event_data ==
     unique(
@@ -364,6 +363,7 @@
 
     handler_data->proto = MG_PROTO_NONE;
     handler_data->mercury_callback = Handler;
+    handler_data->mt_channel = -1;
 
     Connection = mg_bind_opt(Manager, Address,
         (mg_event_handler_t)MMG_event_handler, opts);
@@ -431,7 +431,7 @@
     "MMG_event_handler").
 
 event_handler_wrapper(Connection, Event, DataPtr, !IO) :-
-    unpack_handler_data(Connection, EventHandler, Protocol),
+    unpack_handler_data(Connection, EventHandler, Protocol, ChannelIndex),
     ( if
         should_handle_event(Event, Protocol),
         ( Event = http_request,
@@ -452,7 +452,9 @@ event_handler_wrapper(Connection, Event, DataPtr, !IO) :-
             Data = recv
         )
     then
-        EventHandler(Connection, Data, !IO)
+        CurriedEventHandler = (pred(!.IO::di, !:IO::uo) is det :-
+            EventHandler(Connection, Data, !IO)),
+        CurriedEventHandler(!IO)
     else
         true % TODO: Log unservable event
     ).
@@ -491,6 +493,7 @@ struct MMG_connection_handler_data
 {
     MR_Word mercury_callback;
     MR_Integer proto;
+    MR_Integer mt_channel;
 };
 
 #define MMG_user_to_handler_data(Connection) \
@@ -502,11 +505,12 @@ struct MMG_connection_handler_data
     [can_pass_as_mercury_type]).
 
 :- pred unpack_handler_data(connection::in,
-    event_handler_pred::out(event_handler_pred), protocol::out) is det.
+    event_handler_pred::out(event_handler_pred),
+    protocol::out, int::out) is det.
 
 :- pragma foreign_proc("C",
     unpack_handler_data(Connection::in, Handler::out(event_handler_pred),
-        Protocol::out),
+        Protocol::out, ChannelIndex::out),
     [promise_pure, will_not_call_mercury, thread_safe],
 "
     struct MMG_connection_handler_data * handler_data =
@@ -514,16 +518,17 @@ struct MMG_connection_handler_data
 
     Handler = handler_data->mercury_callback;
     Protocol = handler_data->proto;
+    ChannelIndex = handler_data->mt_channel;
 ").
 
 connection_protocol(Connection) = Protocol :-
-    unpack_handler_data(Connection, _, Protocol).
+    unpack_handler_data(Connection, _, Protocol, _).
 
 :- pragma foreign_proc("C",
     enable_multithreading(Connection::in, _IO0::di, _IO::uo),
     [promise_pure, will_not_call_mercury, thread_safe],
 "
-    mg_enable_multithreading(Connection);
+    MMG_user_to_handler_data(Connection)->mt_channel = 0;
 ").
 
 %----------------------------------------------------------------------------%
